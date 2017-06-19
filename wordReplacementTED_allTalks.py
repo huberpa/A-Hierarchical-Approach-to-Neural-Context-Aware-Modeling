@@ -66,22 +66,6 @@ with open (mainPath+"/allTEDTalkContent_Tokenized.txt", 'r') as f:
 wordcount = Counter(allTokens)
 wordsInOrder = sorted(wordcount.items(), key=lambda item: item[1])
 
-'''
-# Tag all words 
-taggedWordsInOrder = []
-tmp_words = []
-rangeStep = 20
-for number in range(0, len(wordsInOrder), rangeStep):
-	for (word, count) in wordsInOrder[number:number+rangeStep]:
-		tmp_words.append(word)
-	print str(number) + " / " + str(len(wordsInOrder))
-	taggedWordsInOrder.append(tagger.tag(tmp_words))
-
-with open(mainPath+"/allTEDTalkContent_Tagged.txt",'w') as f:
-		json.dump(taggedWordsInOrder, f)
-		print "saved"
-'''
-
 
 # Load the XML with all talks and iterate through the childs of the root element
 tree = ET.parse(mainPath+"/ted.xml")
@@ -108,6 +92,8 @@ for child in root:
 		tokens = word_tokenize(text.decode('utf-8'))
 		changedTokens = list(tokens)
 		changedTokensIndicated = list(tokens)
+		changedTokensSync = list(tokens)
+
 
 		# Create local varibales to keep track of the nouns and their position in the text to keep track
 		nouns = []
@@ -118,13 +104,10 @@ for child in root:
 			os.rmdir(folder)
 			print "The TEDTalk "+folder+" ist shorter than 200 words! Nothing will be created"
 		else:
-
-			# If all the above conditions are met, create a new folder for the TEDTalk
-			#print "create data in Folder "+ident+"-"+speaker
-
 			# Save the original file in the folder
+			save_text = untokenize(tokens)
 			g = open(folder+"/original_text.txt","w")
-			g.write(text)
+			g.write(save_text)
 			g.close()
 
 			# Create the tags for the current TEDTalk to find nouns later
@@ -249,6 +232,8 @@ for child in root:
 							for char in substitute_Word:
 								if char in string.punctuation:
 									substitute_Word = word
+							if len(substitute_Word) < 3:
+									substitute_Word = word
 
 					# Keep track of all the words that should be replaced
 					replace_Words.append(tuple((tokenToChange[0], substitute_Word)))
@@ -266,13 +251,15 @@ for child in root:
 					if not isinstance(new_token[1], tuple):
 						print "new_token[1] is not a tupel"
 						changedTokens[new_token[0]] = new_token[1]
-						changedTokensIndicated[new_token[0]] = "###"+ new_token[1] +"###"
+						changedTokensSync[new_token[0]] = tokens[new_token[0]] + "___" + new_token[1]
+						changedTokensIndicated[new_token[0]] = "___"+ new_token[1] +"___"
 						replaceTracker.append([new_token[0], tokens[new_token[0]], new_token[1]])
 					
 					#check if it's a tupel with a string at position [0] --> bug in the code, should normally not happen
 					else:
 						changedTokens[new_token[0]] = new_token[1][0]
-						changedTokensIndicated[new_token[0]] = "###"+ new_token[1][0] +"###"
+						changedTokensSync[new_token[0]] = tokens[new_token[0]] + "___" + new_token[1][0]
+						changedTokensIndicated[new_token[0]] = "___"+ new_token[1][0] +"___"
 						replaceTracker.append([new_token[0], tokens[new_token[0]], new_token[1][0]])
 
 			# Untokenizing the text

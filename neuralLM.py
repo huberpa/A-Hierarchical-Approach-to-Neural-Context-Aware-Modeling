@@ -15,9 +15,7 @@ parser.add_option('--end_token', action="store", dest="end_token", help="Token f
 parser.add_option('--save_path', action="store", dest="save_path", help="The path to save the folders (logging, models etc.)  (default: .)", default=".")
 parser.add_option('--continue_version', action="store", dest="continue_version", help="Continue to learn a already started model (default: 0)", default=0)
 parser.add_option('--starting_epoch', action="store", dest="starting_epoch", help="Continue learning with this epoch (default: 1)", default=1)
-
 options, args = parser.parse_args()
-print options
 nb_hidden_layers = int(options.layers)
 hidden_dimensions= int(options.layer_dim)
 batch_size = int(options.batch_size)
@@ -68,7 +66,7 @@ import json
 # Open the training dataset
 print "Reading training data..."
 path  = open(training_data, "r")
-text = path.read().decode('utf8').lower()
+text = path.read().decode('utf8')
 
 # Split the text in sentences and words --> tokens[#sentence][#word]
 print "Tokenizing file..."
@@ -76,6 +74,9 @@ words = nltk.word_tokenize(text)
 tokens = []
 for index, sentence in enumerate(nltk.sent_tokenize(text)): 
     tokens.append(nltk.word_tokenize(sentence))
+
+words = [word.lower() for word in words]
+tokens = [[word.lower() for word in sentence] for sentence in tokens]
 
 # All words that occur in the text and cut the first vocabulary_size
 print "Creating vocabulary..."
@@ -95,21 +96,25 @@ for index1, sentence in enumerate(tokens):
     for index2, word in enumerate(sentence):
         tokens[index1][index2] = word_to_index[word] if word in word_to_index else word_to_index[unknown_token]
 
+# Adding the start- and end-tokens to the sentences
 print "Adding start and end tokens..."
 for index, sentence in enumerate(tokens):
     tokens[index] = [word_to_index[start_token]] + tokens[index] + [word_to_index[end_token]]
 
+# Cut all sentences that are longer than 50 words
 longestSentence = 50
 for index, sentence in enumerate(tokens):
     if len(sentence) > longestSentence:
         tokens[index] = tokens[index][:50]
 
+# Split the sentences into input and output by shifting them by one
 input_Words = []
 output_Words = []
 for sentence in tokens:
     input_Words.append(sentence[:len(sentence)-1])
     output_Words.append(sentence[1:len(sentence)])
 
+# Pad the sequences with zeros
 print "Padding sequences with zeros..."
 pad_input_Words = kerasSequence.pad_sequences(input_Words, maxlen=longestSentence, padding='pre', value=0)
 pad_output_Words = kerasSequence.pad_sequences(output_Words, maxlen=longestSentence, padding='pre', value=0)
@@ -120,10 +125,12 @@ print 'Number of sequences:' + str(len(input_Words))
 print 'Number of words (vocabulary):' + str(len(vocab))
 print 'Length of Input (Longest sentence):' + str(longestSentence)
 
+# Create NUMPY arrays to enter the data into the network
 print('Vectorization...')
 trainingInput = np.zeros((len(pad_input_Words), longestSentence), dtype=np.int16)
 trainingOutput = np.zeros((len(pad_output_Words), longestSentence), dtype=np.int16)
 
+# Copy the lists into NUMPY arrays
 for index1, sequence in enumerate(pad_input_Words):
     for index2, word in enumerate(sequence):
         trainingInput[index1, index2] = word
@@ -132,9 +139,13 @@ for index1, sequence in enumerate(pad_output_Words):
     for index2, word in enumerate(sequence):        
         trainingOutput[index1, index2] = word
 
+# Expand the dimension of the output, so that every index for a output is in a one element array
+# --> Required by the framework
 trainingOutput = np.expand_dims(trainingOutput, -1)
 
+# Check if an existing model should be extended or if a new model should be created
 if continue_learning == 1:
+    # Load the model
     print('Load the Model...')
     idx = continue_version
     model = load_model(path_to_folders + "/models_" + str(idx) + "/LM_model_Iteration_" + str(starting_epoch-1) + ".h5")
@@ -169,16 +180,19 @@ else:
     model.add(TimeDistributed(Dense(len(vocab), activation='softmax')))
     model.compile(loss='sparse_categorical_crossentropy', optimizer="adam")
 
-
+# Output the networks architecture
 print model.summary() 
 
 # Iterate trough the trainingsset
 for iteration in range(starting_epoch, starting_epoch+trainingIterations):
+
+    # Stdout formatting
     print ""
     print('#' * 50)
     print ""
     print'Iteration: ' + str(iteration)
 
+    # Fitting the data into the model
     iterationResult = model.fit(trainingInput, trainingOutput, batch_size=int(batch_size), epochs=1)
 
     # Log the iteration results
@@ -193,5 +207,6 @@ for iteration in range(starting_epoch, starting_epoch+trainingIterations):
         logFile.write("{}\n".format(""))
         logFile.write("{}\n".format("+"*50))
 
+    # Save the model at the end of the iteration
     model.save(path_to_folders + "/models_" + str(idx) + "/LM_model_Iteration_" + str(iteration) + '.h5')
 
