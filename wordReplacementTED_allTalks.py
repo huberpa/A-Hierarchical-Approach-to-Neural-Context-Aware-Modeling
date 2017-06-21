@@ -264,11 +264,17 @@ for child in root:
 
 			# Untokenizing the text
 			text = untokenize(changedTokens)
+			textSync = untokenize(changedTokensSync)
 			textIndicated = untokenize(changedTokensIndicated)
 
 			# Saving the modified text into new file
 			writeTo = open(folder+"/modified_text.txt","w")
 			writeTo.write(text.encode('utf-8'))
+			writeTo.close()
+
+			# Saving the modified text into new file
+			writeTo = open(folder+"/sync_text.txt","w")
+			writeTo.write(textSync.encode('utf-8'))
 			writeTo.close()
 
 			# Saving the indicated text into new file

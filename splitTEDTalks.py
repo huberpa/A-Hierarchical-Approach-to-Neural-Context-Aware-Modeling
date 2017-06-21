@@ -25,6 +25,12 @@ def collapse_data(type_of_set):
 				with open(destination+"/"+type_of_set+"/modified_"+type_of_set+"_texts.txt", "a") as all_txt:
 					 all_txt.write("{}\n".format(text))
 
+			with open(child+"/sync_text.txt", "r") as txt:
+				text = txt.read()
+				with open(destination+"/"+type_of_set+"/sync_"+type_of_set+"_texts.txt", "a") as all_txt:
+					 all_txt.write("{}\n".format(text))
+
+
 			with open(child+"/indicated_text.txt", "r") as txt:
 				text = txt.read()
 				with open(destination+"/"+type_of_set+"/indicated_"+type_of_set+"_texts.txt", "a") as all_txt:

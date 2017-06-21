@@ -52,5 +52,3 @@ print "There are "+str(count)+" folders with less than 4 files. all of them got 
 print "There are "+str(countNoChange)+" folders with no changes. all of them got deleted!"
 print "There are "+str(countWrongEncoding)+" folders with wrong encoding changes. all of them got deleted!"
 
-
-#split into Training, Validation and Test dataset

@@ -80,7 +80,8 @@ tokens = [[word.lower() for word in sentence] for sentence in tokens]
 
 # All words that occur in the text and cut the first vocabulary_size
 print "Creating vocabulary..."
-vocab = ["<PAD>"]+[word[0] for word in Counter(words).most_common()][:vocabulary_size]
+allVocab = [word[0] for word in Counter(words).most_common()]
+vocab = ["<PAD>"]+allVocab[:vocabulary_size]
 vocab.append(unknown_token)
 vocab.append(start_token)
 vocab.append(end_token)
@@ -122,7 +123,7 @@ pad_output_Words = kerasSequence.pad_sequences(output_Words, maxlen=longestSente
 # Print information
 print 'Finished initialization with......'
 print 'Number of sequences:' + str(len(input_Words))
-print 'Number of words (vocabulary):' + str(len(vocab))
+print 'Number of words (vocabulary):' + str(len(vocab)) + " (full vocabulary consists of " + str(len(allVocab)) + " unique words)"
 print 'Length of Input (Longest sentence):' + str(longestSentence)
 
 # Create NUMPY arrays to enter the data into the network
