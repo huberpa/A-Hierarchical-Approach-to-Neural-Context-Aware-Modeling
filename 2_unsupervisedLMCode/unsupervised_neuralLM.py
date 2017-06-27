@@ -198,6 +198,10 @@ for iteration in range(starting_epoch, starting_epoch+trainingIterations):
 
     # Log the iteration results
     with open(path_to_folders + "/log_" + str(idx) + "/logging.log", "a") as logFile:
+        log = logFile.read()
+        if len(log) < 1:
+            logFile.write("{}\n".format(options))
+
         logData = training_data
         logDate = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         logIteration = " --- Iteration: " + str(iteration)
