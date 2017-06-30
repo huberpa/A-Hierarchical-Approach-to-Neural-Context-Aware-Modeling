@@ -6,6 +6,7 @@ parser = optparse.OptionParser()
 parser.add_option('--dataset', action="store", dest="dataset", help="Choose the dataset to train on [PRD,DEV] (default: PRD)", default="PRD")
 parser.add_option('--layers', action="store", dest="layers", help="The number of hidden layers in the model (default: 1)", default=1)
 parser.add_option('--layer_dim', action="store", dest="layer_dim", help="The number of neurons in the hidden layer(s)  (default: 128)", default=128)
+parser.add_option('--embedding_dim', action="store", dest="embedding_dim", help="The number of dimensions the embedding has  (default: 300)", default=300)
 parser.add_option('--batch_size', action="store", dest="batch_size", help="The batch size of the model (default: 30)", default=30)
 parser.add_option('--epochs', action="store", dest="epochs", help="The number of training epochs (default: 10)", default=10)
 parser.add_option('--vocabulary_size', action="store", dest="vocabulary_size", help="Size of the vocabulary (default: 12000)", default=12000)
@@ -18,6 +19,7 @@ parser.add_option('--starting_epoch', action="store", dest="starting_epoch", hel
 options, args = parser.parse_args()
 nb_hidden_layers = int(options.layers)
 hidden_dimensions= int(options.layer_dim)
+embedding_size = int(options.embedding_dim)
 batch_size = int(options.batch_size)
 trainingIterations = int(options.epochs)
 starting_epoch = int(options.starting_epoch)
@@ -193,7 +195,7 @@ else:
     # Build the model
     print('Building the Model...')
     model = Sequential()
-    model.add(Embedding(input_dim=len(vocab), output_dim=hidden_dimensions, mask_zero=True))
+    model.add(Embedding(input_dim=len(vocab), output_dim=embedding_size, mask_zero=True))
     for layer in range(0, nb_hidden_layers):
         print "add LSTM layer...."
         model.add(LSTM(units=hidden_dimensions, return_sequences=True))

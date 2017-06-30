@@ -58,7 +58,6 @@ wordcount = Counter(words)
 wordUnigram = sorted(wordcount.items(), key=lambda item: item[1])
 
 unigrams = dict((word, count) for word, count in wordUnigram)
-print unigrams
 
 # Load the index_to_word and word_to_index files to convert indizes into words
 word_to_index = []
@@ -80,8 +79,8 @@ for index, sentence in enumerate(tokens):
 	value_sentence = []
 
 	# DEBUGGING output
-	#if (index % 10000) == 0:
-	print str(index) + " / " + str(len(tokens))
+	if (index % 100) == 0:
+		print str(index) + " / " + str(len(tokens))
 
 	# Adding start and end token to the sentence
 	cut_sentence = ["<START>"] + sentence + ["<END>"]
@@ -138,15 +137,18 @@ for index, sentence in enumerate(tokens):
 		for change in changes:
 			if change[0] == index:
 				try:	
-					
+
 					# Get rank of original and modified word			
 					better_alternatives_original = 1
 					better_alternatives_modified = 1
+
 					for selection in word:
 						if selection > word[word_to_index[change[1]]]:
 							better_alternatives_modified += 1
 						if selection > word[output_perplexity[index]]:
 							better_alternatives_original += 1
+
+					#print "word "+ str(change[1]) + " has rank " + str(better_alternatives_modified) + " with probability " + str(word[word_to_index[change[1]]])
 
 					# Get unigram probability
 					count_o = 1
@@ -155,14 +157,15 @@ for index, sentence in enumerate(tokens):
 						count_o = unigrams[index_to_word[str(output_perplexity[index])]]
 						count_m = unigrams[change[1]]
 					except Exception:
-						print "Exception2"
+						count_o = count_o
 
 					# Substitude the original word with the modified one -> try to find these later
 					all_words_probability_with_modified[len(all_words_probability_with_modified)-1][0] = word[word_to_index[change[1]]]
 					all_words_probability_with_modified[len(all_words_probability_with_modified)-1][1] = 1
 					all_words_probability_with_modified[len(all_words_probability_with_modified)-1][2] = (word[word_to_index[change[1]]]*len(words))/(count_m)
 					all_words_probability_with_modified[len(all_words_probability_with_modified)-1][3] = change[1]
-					
+					#print all_words_probability_with_modified[len(all_words_probability_with_modified)-1]
+
 					# Save analytics for changed words in list
 					probability_orig_mods.append([[word[output_perplexity[index]], (word[output_perplexity[index]]*len(words))/(count_o), better_alternatives_original], [word[word_to_index[change[1]]], (word[word_to_index[change[1]]]*len(words))/(count_m), better_alternatives_modified]])
 
@@ -224,12 +227,11 @@ mean_position_m /= len(probability_orig_mods)-words_not_in_vocab
 
 #Sort all the probabilities to find modified words
 all_words_probability_with_modified.sort(key=lambda row: row[0])
-
 all_positions_modified = []
 for idx, element in enumerate(all_words_probability_with_modified):
 	if element[1] == 1:
 		all_positions_modified.append([idx, element[3], element[0]])
-
+print "Number of words modified and in all_words_probability_with_modified: "+str(len(all_positions_modified))
 modifications_in_lowest_100 = 0
 modifications_in_lowest_500 = 0
 modifications_in_lowest_1000 = 0
@@ -330,7 +332,7 @@ print classCount_m
 print "Mean Perplexity of all Sequences: " + str(np.mean(sentence_level_perplexity))
 print ""
 
-with open("./perplexity.txt", "a") as f:
+with open("./perplexity_unsupervised.txt", "a") as f:
 	content = fileName + ", Mean Probability of correct Words, " + str(mean_p_o)
 	content += ", Mean Probability of modified Words, " + str(mean_p_m)
 	content += ", Mean Probability of correct Words divided by unigram probability, " + str(mean_p_o_u)
@@ -352,9 +354,9 @@ with open("./perplexity.txt", "a") as f:
 	content += ", Modified words/unigram probability within most unlikely 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "), " + str(unigram_modifications_in_lowest_10_percent)
 	content += ", Modified words/unigram probability within most unlikely 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "), " + str(unigram_modifications_in_lowest_20_percent)
 	content += ", Modified words/unigram probability within most unlikely 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "), " + str(unigram_modifications_in_lowest_30_percent)
-	content += ", All modified words with positions: "
-	for element in all_positions_modified:
-		content += ", " + str(element)
+	#content += ", All modified words with positions: "
+	#for element in all_positions_modified:
+	#	content += ", " + str(element)
 
 	content += ", Distribution of correct word relative to other words"
 	for element in classCount_o:

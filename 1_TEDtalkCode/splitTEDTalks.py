@@ -15,6 +15,7 @@ def collapse_data(type_of_set):
 		child = os.path.join(destination+"/"+type_of_set, f)
 		if os.path.isdir(child):
 
+			# Without talk seperator 
 			with open(child+"/original_text.txt", "r") as txt:
 				text = txt.read()
 				with open(destination+"/"+type_of_set+"/original_"+type_of_set+"_texts.txt", "a") as all_txt:
@@ -30,7 +31,6 @@ def collapse_data(type_of_set):
 				with open(destination+"/"+type_of_set+"/sync_"+type_of_set+"_texts.txt", "a") as all_txt:
 					 all_txt.write("{}\n".format(text))
 
-
 			with open(child+"/indicated_text.txt", "r") as txt:
 				text = txt.read()
 				with open(destination+"/"+type_of_set+"/indicated_"+type_of_set+"_texts.txt", "a") as all_txt:
@@ -40,6 +40,27 @@ def collapse_data(type_of_set):
 				text = txt.read()
 				with open(destination+"/"+type_of_set+"/changes_"+type_of_set+"_texts.txt", "a") as all_txt:
 					 all_txt.write("{}\n".format(f + ": " + text))
+
+			# With talk seperator
+			with open(child+"/original_text.txt", "r") as txt:
+				text = txt.read()
+				with open(destination+"/"+type_of_set+"/talkseperated_original_"+type_of_set+"_texts.txt", "a") as all_txt:
+					 all_txt.write("{}\n".format("<TALK>"+text+"</TALK>"))
+
+			with open(child+"/modified_text.txt", "r") as txt:
+				text = txt.read()
+				with open(destination+"/"+type_of_set+"/talkseperated_modified_"+type_of_set+"_texts.txt", "a") as all_txt:
+					 all_txt.write("{}\n".format("<TALK>"+text+"</TALK>"))
+
+			with open(child+"/sync_text.txt", "r") as txt:
+				text = txt.read()
+				with open(destination+"/"+type_of_set+"/talkseperated_sync_"+type_of_set+"_texts.txt", "a") as all_txt:
+					 all_txt.write("{}\n".format("<TALK>"+text+"</TALK>"))
+
+			with open(child+"/indicated_text.txt", "r") as txt:
+				text = txt.read()
+				with open(destination+"/"+type_of_set+"/talkseperated_indicated_"+type_of_set+"_texts.txt", "a") as all_txt:
+					 all_txt.write("{}\n".format("<TALK>"+text+"</TALK>"))
 ########################################################################
 
 
