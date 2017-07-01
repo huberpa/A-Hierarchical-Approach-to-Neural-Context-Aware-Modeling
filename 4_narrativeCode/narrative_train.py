@@ -92,5 +92,8 @@ for index, talk in enumerate(plain_talks):
 	for idx, sentence in enumerate(sentences): 
 	    talks[index][idx] = nltk.word_tokenize(sentence)
 
+#TODO
+#LM sentence embedding for former sentence in dataset
+#seq to seq model for word prediction
 
 
