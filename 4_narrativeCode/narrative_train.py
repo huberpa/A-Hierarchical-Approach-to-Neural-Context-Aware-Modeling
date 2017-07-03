@@ -70,7 +70,6 @@ embedding_size = int(parameters['embedding_dim'])
 nb_hidden_layers = int(parameters['layers'])
 hidden_dimensions = int(parameters['layer_dim'])
 
-
 # Open the sentence index_to_word and word_to_index
 print "Reading sentence vocab data..."
 word_to_index = []
@@ -82,7 +81,6 @@ with open(sentence_vocab + "/index_to_word.json") as f:
 
 # Open the model to create the sentence embeddings
 sentenceModel = load_model(sentence_model)
-
 newSentenceModel = Sequential()
 newSentenceModel.add(Embedding(input_dim=len(word_to_index), output_dim=embedding_size, mask_zero=True, weights=sentenceModel.layers[0].get_weights()))
 for layerNumber in range(0, nb_hidden_layers):
@@ -90,50 +88,37 @@ for layerNumber in range(0, nb_hidden_layers):
     newSentenceModel.add(LSTM(units=hidden_dimensions, return_sequences=True, weights=sentenceModel.layers[layerNumber+1].get_weights()))
 newSentenceModel.compile(loss='sparse_categorical_crossentropy', optimizer="adam")
 
-
-
-input_sentence= ["The", "dogs", "are", "really", "cute", "."]
+# Test for word embeddings
+'''
+test = Sequential()
+test.add(Embedding(input_dim=len(word_to_index), output_dim=embedding_size, mask_zero=True, weights=sentenceModel.layers[0].get_weights()))
+test.compile(loss='sparse_categorical_crossentropy', optimizer="adam")
+input_sentence= ["dog"]
 testInput = np.zeros((1, len(input_sentence)), dtype=np.int16)
 for index, idx in enumerate(input_sentence):
 	testInput[0, index] = word_to_index[idx.lower()]
-
-# Predict the next words
-prediction1 = newSentenceModel.predict(testInput)
-
+prediction1 = test.predict(testInput)
 print prediction1[0][-1]
-
-input_sentence= ["Many", "dogs", "play", "at", "the", "park", "."]
+input_sentence= ["car"]
 testInput = np.zeros((1, len(input_sentence)), dtype=np.int16)
 for index, idx in enumerate(input_sentence):
 	testInput[0, index] = word_to_index[idx.lower()]
-
-# Predict the next words
-prediction2 = newSentenceModel.predict(testInput)
-
+prediction2 = test.predict(testInput)
 print prediction2[0][-1]
-
-input_sentence= ["Streets", "are", "important", "for", "cars", "and", "bus","."]
+input_sentence= ["cat"]
 testInput = np.zeros((1, len(input_sentence)), dtype=np.int16)
 for index, idx in enumerate(input_sentence):
 	testInput[0, index] = word_to_index[idx.lower()]
-
-# Predict the next words
-prediction3 = newSentenceModel.predict(testInput)
-
+prediction3 = test.predict(testInput)
 print prediction3[0][-1]
-
-print "------"
-
-
 result1 = spatial.distance.cosine(prediction1[0][-1], prediction2[0][-1])
 result2 = spatial.distance.cosine(prediction2[0][-1], prediction3[0][-1])
 result3 = spatial.distance.cosine(prediction1[0][-1], prediction3[0][-1])
-
 print result1
 print result2
 print result3
-
 '''
+
 # Split the text in talks, sentences and words --> tokens[#talks][#sentence][#word]
 # words are needed for the vocabulary calculation further down the road
 print "Tokenizing file..."
@@ -158,7 +143,6 @@ for index, talk in enumerate(plain_talks):
 	for idx, sentence in enumerate(sentences): 
 	    talks[index][idx] = nltk.word_tokenize(sentence)
 
-'''
 
 #TODO
 #LM sentence embedding for former sentence in dataset
