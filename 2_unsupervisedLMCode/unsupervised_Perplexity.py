@@ -173,7 +173,10 @@ for index, sentence in enumerate(tokens):
 					words_not_in_vocab += 1
 
 		# Perplexity for overall perplexity computaion
-		perplexity += (math.log(word[output_perplexity[index]], 2))/length
+		print "length: "+str(length)
+		print "probab: "+str(word[output_perplexity[index]])
+		if word[output_perplexity[index]] > 0:
+			perplexity += (math.log(word[output_perplexity[index]], 2))/length
 
 	# Calculate mean perplexity for the sentence
 	perplexity = -perplexity

@@ -3,23 +3,19 @@
 ##############################################
 import optparse
 parser = optparse.OptionParser()
-parser.add_option('--dataset', action="store", dest="dataset", help="Choose the dataset to train on [PRD,DEV] (default: PRD)", default="PRD")
 parser.add_option('--layers', action="store", dest="layers", help="The number of hidden layers in the model (default: 1)", default=1)
+parser.add_option('--sentence_model', action="store", dest="sentence_model", help="The path to the sentence embeddings model(defaule: .)", default=".")
+parser.add_option('--sentence_vocab', action="store", dest="sentence_vocab", help="The path to the sentence embeddings vocabulary(defaule: .)", default=".")
+parser.add_option('--sentence_log', action="store", dest="sentence_log", help="The path to the sentence embeddings logfiles(defaule: .)", default=".")
 parser.add_option('--layer_dim', action="store", dest="layer_dim", help="The number of neurons in the hidden layer(s)  (default: 128)", default=128)
-parser.add_option('--embedding_dim', action="store", dest="embedding_dim", help="The number of dimensions the embedding has  (default: 300)", default=300)
 parser.add_option('--batch_size', action="store", dest="batch_size", help="The batch size of the model (default: 30)", default=30)
 parser.add_option('--epochs', action="store", dest="epochs", help="The number of training epochs (default: 10)", default=10)
-parser.add_option('--vocabulary_size', action="store", dest="vocabulary_size", help="Size of the vocabulary (default: 12000)", default=12000)
-parser.add_option('--unknown_token', action="store", dest="unknown_token", help="Token for words that are not in the vacabulary (default: <UNKWN>)", default="<UNKWN>")
-parser.add_option('--start_token', action="store", dest="start_token", help="Token for start (default: <START>)", default="<START>")
-parser.add_option('--end_token', action="store", dest="end_token", help="Token for end (default: <END>)", default="<END>")
 parser.add_option('--save_path', action="store", dest="save_path", help="The path to save the folders (logging, models etc.)  (default: .)", default=".")
 parser.add_option('--continue_version', action="store", dest="continue_version", help="Continue to learn a already started model (default: 0)", default=0)
 parser.add_option('--starting_epoch', action="store", dest="starting_epoch", help="Continue learning with this epoch (default: 1)", default=1)
 options, args = parser.parse_args()
 nb_hidden_layers = int(options.layers)
 hidden_dimensions= int(options.layer_dim)
-embedding_size = int(options.embedding_dim)
 batch_size = int(options.batch_size)
 trainingIterations = int(options.epochs)
 starting_epoch = int(options.starting_epoch)
@@ -27,16 +23,10 @@ continue_version = int(options.continue_version)
 continue_learning = 0
 if(int(starting_epoch) > 1):
     continue_learning = 1
-path_to_folders = options.save_path
-vocabulary_size = int(options.vocabulary_size)
-unknown_token = options.unknown_token
-start_token = options.start_token
-end_token = options.end_token
-dataset = options.dataset
-if dataset == "DEV":
-    training_data = "./../tedData/sets/development/talkseperated_original_development_texts.txt"
-if dataset == "PRD":
-    training_data = "./../tedData/sets/training/talkseperated_original_training_texts.txt"
+
+sentence_model = options.sentence_model
+sentence_vocab = options.sentence_vocab
+sentence_log = options.sentence_log
 ##############################################
 
 
@@ -63,19 +53,70 @@ import json
 # Main
 ##############################################
 
-# Open the training dataset
-print "Reading training data..."
-path  = open(training_data, "r")
-text = path.read().decode('utf8')
+# Open the sentence log to find out about the used parameters
+print "Reading sentence log data..."
+path  = open(sentence_log, "r")
+sentence_logging_text = path.read().decode('utf8')
 
+# Find corpus and save
+parameters = json.loads(sentence_logging_text[:sentence_logging_text.find("}")+1].replace("'","\""))
+corpus = parameters['dataset']
+if corpus == "DEV":
+    training_data = "./../tedData/sets/development/talkseperated_original_development_texts.txt"
+if corpus == "PRD":
+    training_data = "./../tedData/sets/training/talkseperated_original_development_texts.txt"
+embedding_size = int(parameters['embedding_dim'])
+nb_hidden_layers = int(parameters['layers'])
+hidden_dimensions = int(parameters['layer_dim'])
+
+
+# Open the sentence index_to_word and word_to_index
+print "Reading sentence vocab data..."
+word_to_index = []
+with open(sentence_vocab + "/word_to_index.json") as f:    
+	word_to_index = json.load(f)
+index_to_word = []
+with open(sentence_vocab + "/index_to_word.json") as f:    
+	index_to_word = json.load(f)
+
+# Open the model to create the sentence embeddings
+sentenceModel = load_model(sentence_model)
+print sentenceModel.summary()
+
+model = Sequential()
+model.add(Embedding(input_dim=len(word_to_index), output_dim=embedding_size, mask_zero=True, weights=sentenceModel.layers[0].get_weights()))
+for layerNumber in range(0, nb_hidden_layers):
+    print "add LSTM layer...."
+    model.add(LSTM(units=hidden_dimensions, return_sequences=True, weights=sentenceModel.layers[layerNumber+1].get_weights()))
+model.compile(loss='sparse_categorical_crossentropy', optimizer="adam")
+
+
+
+input_perplexity= [15,18,218,6584,2374,234,234,542,864,245]
+testInput = np.zeros((1, 10), dtype=np.int16)
+for index, idx in enumerate(input_perplexity):
+	testInput[0, index] = idx
+
+# Predict the next words
+prediction = model.predict(testInput)
+
+print prediction
+print prediction[0]
+print len(prediction)
+print len(prediction[0])
+print len(prediction[0][0])
+
+print(testInput.shape)
+print(prediction.shape)
+'''
 # Split the text in talks, sentences and words --> tokens[#talks][#sentence][#word]
 # words are needed for the vocabulary calculation further down the road
 print "Tokenizing file..."
-all_words = nltk.word_tokenize(text)
+all_words = nltk.word_tokenize(corpus)
 
 # Split the text at the talks
 plain_talks = []
-walkthrough_text = text
+walkthrough_text = corpus
 start_current_talk = 0
 end_current_talk = 0
 while walkthrough_text.find("</TALK>") > -1:
@@ -92,8 +133,9 @@ for index, talk in enumerate(plain_talks):
 	for idx, sentence in enumerate(sentences): 
 	    talks[index][idx] = nltk.word_tokenize(sentence)
 
+'''
+
 #TODO
 #LM sentence embedding for former sentence in dataset
 #seq to seq model for word prediction
-
 
