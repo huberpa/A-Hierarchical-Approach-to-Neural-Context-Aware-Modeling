@@ -46,6 +46,7 @@ import re
 import os
 import datetime
 import json
+from scipy import spatial
 ##############################################
 
 
@@ -81,33 +82,57 @@ with open(sentence_vocab + "/index_to_word.json") as f:
 
 # Open the model to create the sentence embeddings
 sentenceModel = load_model(sentence_model)
-print sentenceModel.summary()
 
-model = Sequential()
-model.add(Embedding(input_dim=len(word_to_index), output_dim=embedding_size, mask_zero=True, weights=sentenceModel.layers[0].get_weights()))
+newSentenceModel = Sequential()
+newSentenceModel.add(Embedding(input_dim=len(word_to_index), output_dim=embedding_size, mask_zero=True, weights=sentenceModel.layers[0].get_weights()))
 for layerNumber in range(0, nb_hidden_layers):
     print "add LSTM layer...."
-    model.add(LSTM(units=hidden_dimensions, return_sequences=True, weights=sentenceModel.layers[layerNumber+1].get_weights()))
-model.compile(loss='sparse_categorical_crossentropy', optimizer="adam")
+    newSentenceModel.add(LSTM(units=hidden_dimensions, return_sequences=True, weights=sentenceModel.layers[layerNumber+1].get_weights()))
+newSentenceModel.compile(loss='sparse_categorical_crossentropy', optimizer="adam")
 
 
 
-input_perplexity= [15,18,218,6584,2374,234,234,542,864,245]
-testInput = np.zeros((1, 10), dtype=np.int16)
-for index, idx in enumerate(input_perplexity):
-	testInput[0, index] = idx
+input_sentence= ["The", "dogs", "are", "really", "cute", "."]
+testInput = np.zeros((1, len(input_sentence)), dtype=np.int16)
+for index, idx in enumerate(input_sentence):
+	testInput[0, index] = word_to_index[idx.lower()]
 
 # Predict the next words
-prediction = model.predict(testInput)
+prediction1 = newSentenceModel.predict(testInput)
 
-print prediction
-print prediction[0]
-print len(prediction)
-print len(prediction[0])
-print len(prediction[0][0])
+print prediction1[0][-1]
 
-print(testInput.shape)
-print(prediction.shape)
+input_sentence= ["Many", "dogs", "play", "at", "the", "park", "."]
+testInput = np.zeros((1, len(input_sentence)), dtype=np.int16)
+for index, idx in enumerate(input_sentence):
+	testInput[0, index] = word_to_index[idx.lower()]
+
+# Predict the next words
+prediction2 = newSentenceModel.predict(testInput)
+
+print prediction2[0][-1]
+
+input_sentence= ["Streets", "are", "important", "for", "cars", "and", "bus","."]
+testInput = np.zeros((1, len(input_sentence)), dtype=np.int16)
+for index, idx in enumerate(input_sentence):
+	testInput[0, index] = word_to_index[idx.lower()]
+
+# Predict the next words
+prediction3 = newSentenceModel.predict(testInput)
+
+print prediction3[0][-1]
+
+print "------"
+
+
+result1 = spatial.distance.cosine(prediction1[0][-1], prediction2[0][-1])
+result2 = spatial.distance.cosine(prediction2[0][-1], prediction3[0][-1])
+result3 = spatial.distance.cosine(prediction1[0][-1], prediction3[0][-1])
+
+print result1
+print result2
+print result3
+
 '''
 # Split the text in talks, sentences and words --> tokens[#talks][#sentence][#word]
 # words are needed for the vocabulary calculation further down the road
