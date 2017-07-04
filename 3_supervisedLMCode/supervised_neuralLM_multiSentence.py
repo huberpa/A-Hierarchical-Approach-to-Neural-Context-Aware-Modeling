@@ -37,6 +37,7 @@ if dataset == "DEV":
     training_data = "./../tedData/sets/development/indicated_development_texts.txt"
 if dataset == "PRD":
     training_data = "./../tedData/sets/training/indicated_training_texts.txt"
+number_sentences = 2
 ##############################################
 
 
@@ -115,7 +116,7 @@ for index, sentence in enumerate(tokens):
     tokens[index] = [word_to_index[start_token]] + tokens[index] + [word_to_index[end_token]]
 
 # Cut all sentences that are longer than 50 words
-longestSentence = 50
+longestSentence = 150
 for index, sentence in enumerate(tokens):
     if len(sentence) > longestSentence:
         tokens[index] = tokens[index][:longestSentence]
