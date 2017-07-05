@@ -238,7 +238,7 @@ print "Number of words modified and in all_words_probability_with_modified: "+st
 modifications_in_lowest_100 = 0
 modifications_in_lowest_500 = 0
 modifications_in_lowest_1000 = 0
-modifications_in_lowest_5000 = 0
+modifications_in_lowest_4000 = 0
 modifications_in_lowest_10_percent = 0
 modifications_in_lowest_20_percent = 0
 modifications_in_lowest_30_percent = 0
@@ -253,9 +253,9 @@ for index, prob in enumerate(all_words_probability_with_modified):
 	if index <= 1000:
 		if prob[1] == 1:
 			modifications_in_lowest_1000 += 1
-	if index <= 5000:
+	if index <= 4000:
 		if prob[1] == 1:
-			modifications_in_lowest_5000 += 1
+			modifications_in_lowest_4000 += 1
 
 for index, prob in enumerate(all_words_probability_with_modified[:(len(all_words_probability_with_modified)/100*30)]):
 	if index <= (len(all_words_probability_with_modified)/100*10):
@@ -272,7 +272,7 @@ all_words_probability_with_modified.sort(key=lambda row: row[2])
 unigram_modifications_in_lowest_100 = 0
 unigram_modifications_in_lowest_500 = 0
 unigram_modifications_in_lowest_1000 = 0
-unigram_modifications_in_lowest_5000 = 0
+unigram_modifications_in_lowest_4000 = 0
 unigram_modifications_in_lowest_10_percent = 0
 unigram_modifications_in_lowest_20_percent = 0
 unigram_modifications_in_lowest_30_percent = 0
@@ -287,9 +287,9 @@ for index, prob in enumerate(all_words_probability_with_modified):
 	if index <= 1000:
 		if prob[1] == 1:
 			unigram_modifications_in_lowest_1000 += 1
-	if index <= 5000:
+	if index <= 4000:
 		if prob[1] == 1:
-			unigram_modifications_in_lowest_5000 += 1
+			unigram_modifications_in_lowest_4000 += 1
 
 for index, prob in enumerate(all_words_probability_with_modified[:(len(all_words_probability_with_modified)/100*30)]):
 	if index <= (len(all_words_probability_with_modified)/100*10):
@@ -314,14 +314,14 @@ print "Mean Position of the modified word compared to the other alternatives is:
 print "Modified words within most unlikely 100 words on dataset: " + str(modifications_in_lowest_100)
 print "Modified words within most unlikely 500 words on dataset: " + str(modifications_in_lowest_500)
 print "Modified words within most unlikely 1000 words on dataset: " + str(modifications_in_lowest_1000)
-print "Modified words within most unlikely 5000 words on dataset: " + str(modifications_in_lowest_5000)
+print "Modified words within most unlikely 4000 words on dataset: " + str(modifications_in_lowest_4000)
 print "Modified words within most unlikely 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "): " + str(modifications_in_lowest_10_percent)
 print "Modified words within most unlikely 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "): " + str(modifications_in_lowest_20_percent)
 print "Modified words within most unlikely 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "): " + str(modifications_in_lowest_30_percent)
 print "Modified words/unigram probability within most unlikely 100 words on dataset: " + str(unigram_modifications_in_lowest_100)
 print "Modified words/unigram probability within most unlikely 500 words on dataset: " + str(unigram_modifications_in_lowest_500)
 print "Modified words/unigram probability within most unlikely 1000 words on dataset: " + str(unigram_modifications_in_lowest_1000)
-print "Modified words/unigram probability within most unlikely 5000 words on dataset: " + str(unigram_modifications_in_lowest_5000)
+print "Modified words/unigram probability within most unlikely 4000 words on dataset: " + str(unigram_modifications_in_lowest_4000)
 print "Modified words/unigram probability within most unlikely 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "): " + str(unigram_modifications_in_lowest_10_percent)
 print "Modified words/unigram probability within most unlikely 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "): " + str(unigram_modifications_in_lowest_20_percent)
 print "Modified words/unigram probability within most unlikely 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "): " + str(unigram_modifications_in_lowest_30_percent)
@@ -346,14 +346,14 @@ with open("./perplexity_unsupervised.txt", "a") as f:
 	content += ", Modified words within most unlikely 100 words on dataset, " + str(modifications_in_lowest_100)
 	content += ", Modified words within most unlikely 500 words on dataset, " + str(modifications_in_lowest_500)
 	content += ", Modified words within most unlikely 1000 words on dataset, " + str(modifications_in_lowest_1000)
-	content += ", Modified words within most unlikely 5000 words on dataset, " + str(modifications_in_lowest_5000)
+	content += ", Modified words within most unlikely 4000 words on dataset, " + str(modifications_in_lowest_4000)
 	content += ", Modified words within most unlikely 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "), " + str(modifications_in_lowest_10_percent)
 	content += ", Modified words within most unlikely 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "), " + str(modifications_in_lowest_20_percent)
 	content += ", Modified words within most unlikely 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "), " + str(modifications_in_lowest_30_percent)
 	content += ", Modified words/unigram probability within most unlikely 100 words on dataset, " + str(unigram_modifications_in_lowest_100)
 	content += ", Modified words/unigram probability within most unlikely 500 words on dataset, " + str(unigram_modifications_in_lowest_500)
 	content += ", Modified words/unigram probability within most unlikely 1000 words on dataset, " + str(unigram_modifications_in_lowest_1000)
-	content += ", Modified words/unigram probability within most unlikely 5000 words on dataset, " + str(unigram_modifications_in_lowest_5000)
+	content += ", Modified words/unigram probability within most unlikely 4000 words on dataset, " + str(unigram_modifications_in_lowest_4000)
 	content += ", Modified words/unigram probability within most unlikely 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "), " + str(unigram_modifications_in_lowest_10_percent)
 	content += ", Modified words/unigram probability within most unlikely 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "), " + str(unigram_modifications_in_lowest_20_percent)
 	content += ", Modified words/unigram probability within most unlikely 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "), " + str(unigram_modifications_in_lowest_30_percent)

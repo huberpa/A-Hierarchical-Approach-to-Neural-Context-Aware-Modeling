@@ -72,6 +72,7 @@ hidden_dimensions = int(parameters['layer_dim'])
 start_token = parameters['start_token']
 end_token = parameters['end_token']
 unknown_token = parameters['unknown_token']
+batch_size = parameters['batch_size']
 
 # Open the training dataset
 print "Reading training data..."
@@ -116,7 +117,8 @@ for index, talk in enumerate(plain_talks):
 	for idx, sentence in enumerate(sentences): 
 	    talks[index][idx] = nltk.word_tokenize(sentence)
 
-# Transform words into numbers and get talk maxLength
+# Transform text into 3d tensor with indizes and sentence embeddings
+# These steps are saved into a file to speed up further start-up procesdures
 talks_numerified = []
 talk_sentence_embedding = []
 talk_maxLength = 0 # 518 for PRD
@@ -131,46 +133,46 @@ for index0, talk in enumerate(talks[:1]):
 for index0, talk in enumerate(talks[:1]):
 	for index1, sentence in enumerate(talk[:3]):
 		talks_numerified[index0][index1] = [word_to_index[start_token]] + talks_numerified[index0][index1] + [word_to_index[end_token]]
-
-
 for index0, talk in enumerate(talks_numerified):
 	talk_sentence_embedding.append([])
 	for index1, sentence in enumerate(talk):
 		trainInput = np.zeros((1, len(sentence)), dtype=np.int16)
 		for index, idx in enumerate(sentence):
 			trainInput[0, index] = idx
-		# Has shape (#nb_talks, #talk_length(nb_sentences), #hidden_state_neurons)
-		talk_sentence_embedding[index0].append(newSentenceModel.predict(trainInput, verbose=0)[0][-1])
+		talk_sentence_embedding[index0].append(newSentenceModel.predict(trainInput, verbose=0)[0][-1]) # Has shape (#nb_talks, #talk_length(nb_sentences), #hidden_state_neurons)
 
-trainInput = np.zeros((len(talk_sentence_embedding), len(talk_sentence_embedding[0]), len(talk_sentence_embedding[0][0])), dtype=np.int16)
-for index1, talk in enumerate(talk_sentence_embedding):
-	for index2, sentence in enumerate(talk):
+
+# Shape input and output in proper shapes
+# Input needs to be the last 50 sentence --> rolling basis
+trainInput = np.zeros((1, 1, len(talk_sentence_embedding[0][0])), dtype=np.float32)
+#trainInput = np.zeros((len(talk_sentence_embedding), len(talk_sentence_embedding[0]), len(talk_sentence_embedding[0][0])), dtype=np.float32)
+for index1, talk in enumerate(talk_sentence_embedding[:1]):
+	for index2, sentence in enumerate(talk[:1]):
 		for index3, value in enumerate(sentence):
 			trainInput[index1, index2, index3] = value
 
-trainOutput = np.zeros((len(talks_numerified), len(talks_numerified[0]), len(talks_numerified[0][0])), dtype=np.int16)
-for index1, talk in enumerate(talks_numerified):
-	for index2, sentence in enumerate(talk):
+trainOutput = np.zeros((1, len(talks_numerified[0][0]), 1), dtype=np.int16)
+#trainOutput = np.zeros((len(talks_numerified), len(talks_numerified[0]), len(talks_numerified[0][0])), dtype=np.int16)
+for index1, talk in enumerate(talks_numerified[:1]):
+	for index2, sentence in enumerate(talk[:1]):
 		for index3, value in enumerate(sentence):
-			trainOutput[index1, index2, index3] = value
+			trainOutput[index2, index3, 0] = value
 
-print trainInput[1][2]
-print trainOutput[1][2]
+print trainInput[0][0]
+print trainOutput[0][0]
 
 
-model = Seq2Seq(batch_input_shape=(len(talk_sentence_embedding), len(talk_sentence_embedding[0]), len(talk_sentence_embedding[0][0])), hidden_dim=256, output_length=50, output_dim=30000, depth=2)
+model = Seq2Seq(batch_input_shape=(1, 1, len(talk_sentence_embedding[0][0])), hidden_dim=256, output_length=36, output_dim=len(word_to_index), depth=2)
 model.compile(loss='sparse_categorical_crossentropy', optimizer='adam')
 print model.summary() 
 
-#model.fit(trainInput, trainingOutput, batch_size=int(batch_size), epochs=1)
+model.fit(trainInput, trainOutput, batch_size=int(batch_size), epochs=1)
 
-
+prediction = model.predict(trainInput, verbose=0)[0]
+print prediction
 #print len(talk_sentence_embedding) # all
 #print len(talk_sentence_embedding[0]) # The talk
 #print len(talk_sentence_embedding[0][0]) # The last hidden state
 
 
-#TODO
-#LM sentence embedding for former sentence in dataset
-#seq to seq model for word prediction
 
