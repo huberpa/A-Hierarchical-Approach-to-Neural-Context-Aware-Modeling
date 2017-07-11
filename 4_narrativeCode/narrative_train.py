@@ -73,6 +73,7 @@ start_token = parameters['start_token']
 end_token = parameters['end_token']
 unknown_token = parameters['unknown_token']
 batch_size = parameters['batch_size']
+size_sentence_embedding = parameters['layer_dim']
 
 # Open the training dataset
 print "Reading training data..."
@@ -97,6 +98,7 @@ for layerNumber in range(0, nb_hidden_layers):
     newSentenceModel.add(LSTM(units=hidden_dimensions, return_sequences=True, weights=sentenceModel.layers[layerNumber+1].get_weights()))
 newSentenceModel.compile(loss='sparse_categorical_crossentropy', optimizer="adam")
 
+
 # Split the text in talks, sentences and words --> tokens[#talks][#sentence][#word]
 print "Tokenizing file..."
 plain_talks = []
@@ -115,10 +117,9 @@ for index, talk in enumerate(plain_talks):
 	sentences = nltk.sent_tokenize(talk)
 	talks[index] =[0]*len(sentences)
 	for idx, sentence in enumerate(sentences): 
-	    talks[index][idx] = nltk.word_tokenize(sentence)
+	    talks[index][idx] = nltk.word_tokenize(sentence.lower())
 
 # Transform text into 3d tensor with indizes and sentence embeddings
-# These steps are saved into a file to speed up further start-up procesdures
 talks_numerified = []
 talk_sentence_embedding = []
 talk_maxLength = 0 # 518 for PRD
@@ -126,33 +127,65 @@ for index0, talk in enumerate(talks[:1]):
 	if len(talk) > talk_maxLength:
 		talk_maxLength = len(talk)
 	talks_numerified.append([])
-	for index1, sentence in enumerate(talk[:3]):
+	talk_sentence_embedding.append([])
+	for index1, sentence in enumerate(talk[:10]):
 		talks_numerified[index0].append([])
+		talks_numerified[index0][index1].append(word_to_index[start_token])
 		for index2, word in enumerate(sentence):
 			talks_numerified[index0][index1].append(word_to_index[word] if word in word_to_index else word_to_index[unknown_token])
-for index0, talk in enumerate(talks[:1]):
-	for index1, sentence in enumerate(talk[:3]):
-		talks_numerified[index0][index1] = [word_to_index[start_token]] + talks_numerified[index0][index1] + [word_to_index[end_token]]
-for index0, talk in enumerate(talks_numerified):
-	talk_sentence_embedding.append([])
-	for index1, sentence in enumerate(talk):
-		trainInput = np.zeros((1, len(sentence)), dtype=np.int16)
-		for index, idx in enumerate(sentence):
+		talks_numerified[index0][index1].append(word_to_index[end_token])
+			
+		trainInput = np.zeros((1, len(talks_numerified[index0][index1])), dtype=np.int16)
+		for index, idx in enumerate(talks_numerified[index0][index1]):
 			trainInput[0, index] = idx
 		talk_sentence_embedding[index0].append(newSentenceModel.predict(trainInput, verbose=0)[0][-1]) # Has shape (#nb_talks, #talk_length(nb_sentences), #hidden_state_neurons)
 
+print talks[0][1]
+print talks[0][2]
+print talks_numerified[0][1]
+print talks_numerified[0][2]
 
 # Shape input and output in proper shapes
 # Input needs to be the last 50 sentence --> rolling basis
-trainInput = np.zeros((1, 1, len(talk_sentence_embedding[0][0])), dtype=np.float32)
-#trainInput = np.zeros((len(talk_sentence_embedding), len(talk_sentence_embedding[0]), len(talk_sentence_embedding[0][0])), dtype=np.float32)
+number_sentence_forecast = 2
+number_sentence_output = 150
+training_input_data = []
+training_output_data = []
+training_input_talk = []
+training_output_talk = []
+
+for index1, talk in enumerate(talk_sentence_embedding):
+	for index2, sentence_Embedding in enumerate(talk[:len(talk)-1]):
+		if len(training_input_talk) <= number_sentence_forecast:
+			training_input_talk.append(sentence_Embedding)
+		else:
+			training_input_talk.pop(0)
+			training_input_talk.append(sentence_Embedding)
+
+		training_output_talk = talks_numerified[index1][index2+1]
+		if len(training_output_talk) > number_sentence_output:
+			training_output_talk[:number_sentence_output]
+
+	training_input_data.append([training_input_talk])
+	training_input_talk = []
+	training_output_data.append(training_output_talk)
+
+print training_input_data[0][0]
+print len(training_input_data)
+print training_output_data[0]
+print len(training_output_data)
+
+
+
+'''
+# Save input and output in numpy arrays
+trainInput = np.zeros((len(talk_sentence_embedding), number_sentence_forecast, size_sentence_embedding), dtype=np.float32)
 for index1, talk in enumerate(talk_sentence_embedding[:1]):
 	for index2, sentence in enumerate(talk[:1]):
 		for index3, value in enumerate(sentence):
 			trainInput[index1, index2, index3] = value
 
-trainOutput = np.zeros((1, len(talks_numerified[0][0]), 1), dtype=np.int16)
-#trainOutput = np.zeros((len(talks_numerified), len(talks_numerified[0]), len(talks_numerified[0][0])), dtype=np.int16)
+trainOutput = np.zeros((len(talks_numerified), len(talks_numerified[0]), len(talks_numerified[0][0])), dtype=np.int16)
 for index1, talk in enumerate(talks_numerified[:1]):
 	for index2, sentence in enumerate(talk[:1]):
 		for index3, value in enumerate(sentence):
@@ -160,7 +193,6 @@ for index1, talk in enumerate(talks_numerified[:1]):
 
 print trainInput[0][0]
 print trainOutput[0][0]
-
 
 model = Seq2Seq(batch_input_shape=(1, 1, len(talk_sentence_embedding[0][0])), hidden_dim=256, output_length=36, output_dim=len(word_to_index), depth=2)
 model.compile(loss='sparse_categorical_crossentropy', optimizer='adam')
@@ -170,9 +202,12 @@ model.fit(trainInput, trainOutput, batch_size=int(batch_size), epochs=1)
 
 prediction = model.predict(trainInput, verbose=0)[0]
 print prediction
+print len(prediction)
+print len(prediction[0])
+
 #print len(talk_sentence_embedding) # all
 #print len(talk_sentence_embedding[0]) # The talk
 #print len(talk_sentence_embedding[0][0]) # The last hidden state
-
+'''
 
 
