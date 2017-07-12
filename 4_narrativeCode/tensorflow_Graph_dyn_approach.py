@@ -1,4 +1,5 @@
 import tensorflow as tf 
+import numpy as np
 from tensorflow.contrib.rnn.python.ops import core_rnn_cell
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
@@ -26,10 +27,18 @@ def seq2seq(encoder_inputs,
 			transp = tf.transpose(lstm_output, [1, 0, 2])
 			lstm_output_unpacked = tf.unstack(transp)
 			for item in lstm_output_unpacked:
-				output = tf.contrib.layers.fully_connected(inputs=item, num_outputs=vocab_size, activation_fn=tf.nn.softmax)
-				outputs.append(output)
-		return outputs
+				logits = tf.layers.dense(inputs=item, units=vocab_size)
+				#output = tf.contrib.layers.fully_connected(inputs=item, num_outputs=vocab_size, activation_fn=tf.nn.softmax)
+				outputs.append(logits)
+				tensor_output = tf.stack(values=outputs, axis=0)
+				final_output = tf.transpose(tensor_output, [1, 0, 2])
+		return final_output
 
+
+def softmax(x):
+    """Compute softmax values for each sets of scores in x."""
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum()
 
 
 
@@ -37,13 +46,14 @@ batch_size = 2
 max_input_length_enc = 5
 max_input_length_dec = 5
 input_size = 1
-vocab_size = 5
+vocab_size = 6
 input_embedding_size = 10
 decoder_inputs = []
 
-encoder_inputs = (tf.placeholder(dtypes.float32, shape=[batch_size, max_input_length_enc, input_size], name="enc_inputs"))
-decoder_inputs = (tf.placeholder(dtypes.int64, shape=[batch_size, max_input_length_dec], name="dec_inputs"))
-decoder_outputs = (tf.placeholder(dtypes.int64, shape=[batch_size, max_input_length_dec], name="dec_outputs"))
+encoder_inputs = tf.placeholder(dtypes.float32, shape=[batch_size, max_input_length_enc, input_size], name="enc_inputs")
+decoder_inputs = tf.placeholder(dtypes.int64, shape=[batch_size, max_input_length_dec], name="dec_inputs")
+decoder_outputs = tf.placeholder(dtypes.int64, shape=[batch_size, max_input_length_dec], name="dec_outputs")
+masking = tf.placeholder(dtypes.float32, shape=[batch_size, max_input_length_dec], name="mask")
 
 hidden_nb_enc = 5
 hidden_nb_dec = 5
@@ -61,25 +71,32 @@ if hidden_nb_dec > 1:
 
 outputs = seq2seq(encoder_inputs=encoder_inputs, decoder_inputs=decoder_inputs, enc_cell=encoder_cell, dec_cell=decoder_cell, input_embedding_size=input_embedding_size, vocab_size=vocab_size)
 
-#cost = tf.reduce.mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=decoder_outputs, logits=outputs))
-#updates = tf.train.GradientDescentOptimizer(0.01).minimize(cost)
+cost = tf.contrib.seq2seq.sequence_loss(targets=decoder_outputs, logits=outputs, weights=masking)
+updates = tf.train.AdamOptimizer().minimize(cost)
 
-print len(outputs)
-print outputs
-# Initializing the variables
 init = tf.global_variables_initializer()
+
 # Launch the graph
 with tf.Session() as session:
 	session.run(init)
 	writer = tf.summary.FileWriter(".", graph=tf.get_default_graph())
-
-
 	feed = {}
 	feed["encoder_inputs"] = [[[1],[1],[1],[0],[0]],[[2],[2],[2],[0],[0]]]
 	feed["decoder_inputs"] = [[1,2,3,0,0],[3,2,1,0,0]]
-	#feed["decoder_outputs"] = [[2,3,4,0,0],[4,3,2,0,0]]	
-	#outputs = session.run(updates, feed_dict=feed)
-	test = session.run(outputs, feed_dict={encoder_inputs:feed["encoder_inputs"], decoder_inputs:feed["decoder_inputs"]})
+	feed["decoder_outputs"] = [[2,3,4,0,0],[4,3,2,0,0]]	
+	feed["mask"] = [[1.,1.,1.,0.,0.],[1.,1.,1.,0.,0.]]
 
-	print test
+	for _ in range(20):
+		test = session.run([updates, cost], feed_dict={encoder_inputs:feed["encoder_inputs"], decoder_inputs:feed["decoder_inputs"], decoder_outputs: feed["decoder_outputs"], masking: feed["mask"]})
+		print test
 
+
+	result_raw = session.run(outputs, feed_dict={encoder_inputs:feed["encoder_inputs"], decoder_inputs:feed["decoder_inputs"]})
+	results_softmax = []
+	for idx1, input_seq in enumerate(result_raw):
+		results_softmax.append([])
+		for idx2, timestep in enumerate(input_seq):
+			results_softmax[idx1].append(softmax(timestep))
+	print results_softmax
+
+	print np.sum(results_softmax[0][0])
