@@ -1,77 +1,111 @@
 import tensorflow as tf 
-from tensorflow.contrib.rnn.python.ops import core_rnn_cell
+import numpy as np
 from tensorflow.python.framework import dtypes
-from tensorflow.python.framework import ops
-from tensorflow.python.ops import embedding_ops
 from tensorflow.python.ops import variable_scope
 
-def seq2seq(encoder_inputs,
-            decoder_inputs,
-            enc_cell,
-            dec_cell,
+def seq2seq(batch_size=100,
+	        enc_input_dimension=512,
+            enc_timesteps_max=10,
+            dec_timesteps_max=50,
+			hidden_units=128,
+            hidden_layers=2,
             input_embedding_size=300,
-            vocab_size=30000,
-            dtype=dtypes.float32):
+            vocab_size=30000):
 
+	# Inputs / Outputs / Cells
+	with variable_scope.variable_scope("IO"):
+		# Placeholders
+		encoder_inputs = tf.placeholder(dtypes.float32, shape=[batch_size, enc_timesteps_max, enc_input_dimension], name="encoder_inputs")
+		encoder_lengths = tf.placeholder(dtypes.int32, shape=[batch_size], name="encoder_lengths")
+		decoder_inputs = tf.placeholder(dtypes.int64, shape=[batch_size, dec_timesteps_max], name="decoder_inputs")
+		decoder_lengths = tf.placeholder(dtypes.int32, shape=[batch_size], name="decoder_lengths")
+		decoder_outputs = tf.placeholder(dtypes.int64, shape=[batch_size, dec_timesteps_max], name="decoder_outputs")
+		masking = tf.placeholder(dtypes.float32, shape=[batch_size, dec_timesteps_max], name="loss_masking")
+
+		# Cells
+		encoder_cell = single_cell_enc = tf.contrib.rnn.LSTMCell(hidden_units)
+		if hidden_layers > 1:
+			encoder_cell = tf.contrib.rnn.MultiRNNCell([single_cell_enc] * hidden_layers)
+		decoder_cell = single_cell_dec = tf.contrib.rnn.LSTMCell(hidden_units)
+		if hidden_layers > 1:
+			decoder_cell = tf.contrib.rnn.MultiRNNCell([single_cell_dec] * hidden_layers)
+
+	# Seq2Seq
 	with variable_scope.variable_scope("seq2seq_Model"):
+		
+		# Encoder
+		_, initial_state = tf.nn.dynamic_rnn(encoder_cell, encoder_inputs, sequence_length=encoder_lengths, dtype=tf.float32, scope = "rnn_encoder")
 
-		# No Embeddings in Encoder, but Embeddings in Decoder
-		_, initial_state = tf.contrib.rnn.static_rnn(enc_cell, encoder_inputs, dtype=dtype, scope = "rnn_encoder")
-
+		# Decoder
 		with variable_scope.variable_scope("rnn_decoder"):
-			state = initial_state
 			outputs = []
 			embeddings = tf.Variable(tf.random_uniform([vocab_size, input_embedding_size], -1.0, 1.0), dtype=tf.float32)
-			for i, inp in enumerate(decoder_inputs):
-				if i > 0:
-					variable_scope.get_variable_scope().reuse_variables()
-				encoder_inputs_embedded = tf.nn.embedding_lookup(embeddings, inp)
-				lstm_output, state = dec_cell(encoder_inputs_embedded, state)
-				output = tf.contrib.layers.fully_connected(inputs=lstm_output, num_outputs=vocab_size, activation_fn=tf.nn.softmax)
-				outputs.append(output)
-		return outputs, state
+			decoder_inputs_embedded = tf.nn.embedding_lookup(embeddings, decoder_inputs)
+			lstm_output,state = tf.nn.dynamic_rnn(decoder_cell, decoder_inputs_embedded, sequence_length=decoder_lengths, initial_state=initial_state)
+			transp = tf.transpose(lstm_output, [1, 0, 2])
+			lstm_output_unpacked = tf.unstack(transp)
+			for item in lstm_output_unpacked:
+				logits = tf.layers.dense(inputs=item, units=vocab_size)
+				outputs.append(logits)
+				tensor_output = tf.stack(values=outputs, axis=0)
+				forward = tf.transpose(tensor_output, [1, 0, 2])
 
-batch_size = 5
-input_length_enc = 3
-input_length_dec = 4
-input_size = 128
-vocab_size = 30000
-input_embedding_size = 300
-encoder_inputs = []
-decoder_inputs = []
+	# Training
+	with variable_scope.variable_scope("Backpropergation"):
+		loss = tf.contrib.seq2seq.sequence_loss(targets=decoder_outputs, logits=forward, weights=masking, average_across_timesteps=False)
+		updates = tf.train.AdamOptimizer().minimize(loss)
 
-for _ in range(input_length_enc):
-	encoder_inputs.append(tf.placeholder(dtypes.float32, shape=[batch_size, input_size]))
+	# Store variables for further training or execution
+	tf.add_to_collection('variables_to_store', forward)
+	tf.add_to_collection('variables_to_store', updates)
+	tf.add_to_collection('variables_to_store', loss)
+	tf.add_to_collection('variables_to_store', encoder_inputs)
+	tf.add_to_collection('variables_to_store', decoder_inputs)
+	tf.add_to_collection('variables_to_store', decoder_outputs)
+	tf.add_to_collection('variables_to_store', masking)
+	tf.add_to_collection('variables_to_store', encoder_lengths)
+	tf.add_to_collection('variables_to_store', decoder_lengths)
 
-for _ in range(input_length_dec):
-	decoder_inputs.append(tf.placeholder(dtypes.int64, shape=[batch_size]))
+	return (forward, updates, loss, encoder_inputs, decoder_inputs, decoder_outputs, masking, encoder_lengths, decoder_lengths)
 
-hidden_nb_enc = 5
-hidden_nb_dec = 5
+def softmax(x):
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum()
 
-hidden_size_enc = 256
-hidden_size_dec = 256
 
-encoder_cell = single_cell_enc = tf.contrib.rnn.LSTMCell(hidden_size_enc)
-if hidden_nb_enc > 1:
-	encoder_cell = tf.contrib.rnn.MultiRNNCell([single_cell_enc] * hidden_nb_enc)
 
-decoder_cell = single_cell_dec = tf.contrib.rnn.LSTMCell(hidden_size_dec)
-if hidden_nb_dec > 1:
-	decoder_cell = tf.contrib.rnn.MultiRNNCell([single_cell_dec] * hidden_nb_dec)	
 
-outputs, state = seq2seq(encoder_inputs=encoder_inputs, decoder_inputs=decoder_inputs, enc_cell=encoder_cell, dec_cell=decoder_cell, input_embedding_size=input_embedding_size, vocab_size=vocab_size)
 
-print len(outputs)
-print outputs[0].shape
-print state[0]
+# To be changed!
+feed = {}
+feed["encoder_inputs"] = [[[1],[1],[1],[0],[0]],[[3],[3],[3],[0],[0]]]
+feed["encoder_length"] = [3,3]
+feed["decoder_inputs"] = [[1,1,1,0,0],[1,1,1,0,0]]
+feed["decoder_length"] = [3,3]
+feed["decoder_outputs"] = [[1,1,1,0,0],[2,2,2,0,0]]	
+feed["mask"] = [[1.,1.,1.,0.,0.],[1.,1.,1.,0.,0.]]
 
-# Initializing the variables
-init = tf.global_variables_initializer()
+network, updates, loss, enc_in, dec_in, dec_out, mask, enc_len, dec_len = seq2seq(batch_size=2, enc_input_dimension=1, enc_timesteps_max=5, dec_timesteps_max=5, hidden_units=128, hidden_layers=2, input_embedding_size=20, vocab_size=10)
+
 
 # Launch the graph
-with tf.Session() as sess:
-	sess.run(init)
-	writer = tf.summary.FileWriter(".", graph=tf.get_default_graph())
+with tf.Session() as session:
+	session.run(tf.global_variables_initializer())
+	saver = tf.train.Saver()
+	#writer = tf.summary.FileWriter(".", graph=tf.get_default_graph())
+	
+	# Training
+	iterations = 30
+	saveCycle = 10
+	for epoch in range(iterations):
+		training_output = session.run([updates, loss], feed_dict={enc_in:feed["encoder_inputs"], dec_in:feed["decoder_inputs"], dec_out: feed["decoder_outputs"], mask: feed["mask"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"]})
+		
+		if epoch == iterations-1:
+			print "Save Final"
+			saver.save(session, './models/testModel', global_step = epoch)
+		elif (epoch % saveCycle) == 0 and epoch != 0:
+			print "Save Epoch"
+			saver.save(session, './models/testModel', global_step = epoch)
 
-
+	#result_raw = session.run(network, feed_dict={enc_in:feed["encoder_inputs"], dec_in:feed["decoder_inputs"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"]})
+	#print result_raw
