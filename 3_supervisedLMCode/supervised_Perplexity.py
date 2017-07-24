@@ -251,7 +251,7 @@ with open("./perplexity_supervised.txt", "a") as f:
 	content += ", Modified words/unigram probability within highest 100 words on dataset, " + str(unigram_modifications_in_highest_100)
 	content += ", Modified words/unigram probability within highest 500 words on dataset, " + str(unigram_modifications_in_highest_500)
 	content += ", Modified words/unigram probability within highest 1000 words on dataset, " + str(unigram_modifications_in_highest_1000)
-	content += ", Modified words/unigram probability within highest 4000 words on dataset, " + str(unigram_modifications_in_highest_4ƒ000)
+	content += ", Modified words/unigram probability within highest 4000 words on dataset, " + str(unigram_modifications_in_highest_4000)
 	content += ", Modified words/unigram probability within highest 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "), " + str(unigram_modifications_in_highest_10_percent)
 	content += ", Modified words/unigram probability within highest 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "), " + str(unigram_modifications_in_highest_20_percent)
 	content += ", Modified words/unigram probability within highest 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "), " + str(unigram_modifications_in_highest_30_percent)

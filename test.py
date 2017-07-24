@@ -1,9 +1,15 @@
-import tensorflow as tf
 
-a = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape=[2, 3], name='a')
-b = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape=[3, 2], name='b')
-c = tf.matmul(a, b)
+#TO TEST!!!!
+training_decoder_input_talk = ["1","2","3","4","5","6"]
+training_decoder_output_talk = ["1","2","3","4","5","6"]
 
-sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
-print (sess.run(c))
-sess.close()
+max_sentence_length = 5
+
+if len(training_decoder_input_talk) > max_sentence_length:
+	training_decoder_input_talk = training_decoder_input_talk[:max_sentence_length+1]
+	training_decoder_output_talk = training_decoder_output_talk[:max_sentence_length+1]
+training_decoder_input_talk = training_decoder_input_talk[:len(training_decoder_input_talk)-1]
+training_decoder_output_talk = training_decoder_output_talk[1:]
+
+print training_decoder_input_talk
+print training_decoder_output_talk

@@ -3,12 +3,14 @@
 ##############################################
 import optparse
 parser = optparse.OptionParser()
-parser.add_option('--sentence_forecast', action="store", dest="sentence_forecast", help="The number of past sentence that are taken into account(default: 10)", default=10)
+parser.add_option('--sentence_forecast', action="store", dest="sentence_forecast", help="The number of past sentence that are taken into account (default: 10)", default=10)
 parser.add_option('--sentence_max_length', action="store", dest="sentence_max_length", help="The maximal sentence length for decoder inputs (default: 50)", default=50)
-parser.add_option('--sentence_model', action="store", dest="sentence_model", help="The path to the sentence embeddings model(default: .)", default=".")
-parser.add_option('--sentence_vocab', action="store", dest="sentence_vocab", help="The path to the sentence embeddings vocabulary(default: .)", default=".")
-parser.add_option('--sentence_log', action="store", dest="sentence_log", help="The path to the sentence embeddings logfiles(default: .)", default=".")
-parser.add_option('--save_path', action="store", dest="save_path", help="The path to save the folders (logging, models etc.)  (default: .)", default=".")
+parser.add_option('--sentence_model', action="store", dest="sentence_model", help="The path to the sentence embeddings model (default: .)", default=".")
+parser.add_option('--sentence_vocab', action="store", dest="sentence_vocab", help="The path to the sentence embeddings vocabulary (default: .)", default=".")
+parser.add_option('--sentence_log', action="store", dest="sentence_log", help="The path to the sentence embeddings logfiles (default: .)", default=".")
+parser.add_option('--save_path', action="store", dest="save_path", help="The path to save the files (default: .)", default=".")
+parser.add_option('--corpus', action="store", dest="corpus", help="The corpus that should be used (PRD or DEV)  (default: PRD)", default="PRD")
+
 options, args = parser.parse_args()
 sentence_model = options.sentence_model
 sentence_vocab = options.sentence_vocab
@@ -16,6 +18,11 @@ sentence_log = options.sentence_log
 save_path = options.save_path
 max_sentence_length = int(options.sentence_max_length)
 max_sentence_forecast = int(options.sentence_forecast)
+corpus = options.corpus
+if corpus == "DEV":
+    training_data = "./../tedData/sets/development/talkseperated_original_development_texts.txt"
+if corpus == "PRD":
+    training_data = "./../tedData/sets/training/talkseperated_original_training_texts.txt"
 ##############################################
 
 # Imports
@@ -37,11 +44,6 @@ print "Reading sentence log data..."
 path  = open(sentence_log, "r")
 sentence_logging_text = path.read().decode('utf8')
 parameters = json.loads(sentence_logging_text[:sentence_logging_text.find("}")+1].replace("'","\""))
-corpus = parameters['dataset']
-if corpus == "DEV":
-    training_data = "./../tedData/sets/development/talkseperated_original_development_texts.txt"
-if corpus == "PRD":
-    training_data = "./../tedData/sets/training/talkseperated_original_training_texts.txt"
 embedding_size = int(parameters['embedding_dim'])
 nb_hidden_layers = int(parameters['layers'])
 hidden_dimensions = int(parameters['layer_dim'])
@@ -136,8 +138,8 @@ for index1, talk in enumerate(talk_sentence_embedding):
 	training_decoder_input_talk = talks_numerified[index1][0]
 	training_decoder_output_talk = talks_numerified[index1][0]
 	if len(training_decoder_input_talk) > max_sentence_length:
-		training_decoder_input_talk[:max_sentence_length]
-		training_decoder_output_talk[:max_sentence_length]
+		training_decoder_input_talk = training_decoder_input_talk[:max_sentence_length+1]
+		training_decoder_output_talk = training_decoder_output_talk[:max_sentence_length+1]
 	training_decoder_input_talk = training_decoder_input_talk[:len(training_decoder_input_talk)-1]
 	training_decoder_output_talk = training_decoder_output_talk[1:]
 	training_decoder_input_data.append(training_decoder_input_talk)

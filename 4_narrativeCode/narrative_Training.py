@@ -154,7 +154,10 @@ network, updates, loss, enc_in, dec_in, dec_out, mask, enc_len, dec_len = seq2se
 
 # Launch the graph
 print "Launch the graph..."
-with tf.Session() as session:
+session_config = tf.ConfigProto(allow_soft_placement=True)    
+session_config.gpu_options.per_process_gpu_memory_fraction = 0.90
+
+with tf.Session(config=session_config) as session:
 	session.run(tf.global_variables_initializer())
 	saver = tf.train.Saver()
 	writer = tf.summary.FileWriter(".", graph=tf.get_default_graph())
@@ -187,6 +190,18 @@ with tf.Session() as session:
 			feed["decoder_length"] = decoder_input_length_batch[batch_index]
 			feed["decoder_outputs"] = decoder_output_data_batch[batch_index]
 			feed["mask"] = decoder_mask_batch[batch_index]
+
+			#print np.asarray(feed["encoder_inputs"]).shape
+			#print np.asarray(feed["decoder_inputs"]).shape
+			#print np.asarray(feed["decoder_outputs"]).shape
+
+			if len(np.asarray(feed["decoder_inputs"]).shape) < 2:
+				for p in feed["decoder_inputs"]:
+					print p
+					print len(p)
+
+			print ('*'*50)
+
 
 			training_output = session.run([updates, loss], feed_dict={enc_in:feed["encoder_inputs"], dec_in:feed["decoder_inputs"], dec_out: feed["decoder_outputs"], mask: feed["mask"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"]})
 
