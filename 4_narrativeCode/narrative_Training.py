@@ -71,8 +71,11 @@ def seq2seq(batch_size,enc_input_dimension,enc_timesteps_max,dec_timesteps_max,h
 	with variable_scope.variable_scope("Output_layer"):
 		transp = tf.transpose(lstm_output, [1, 0, 2])
 		lstm_output_unpacked = tf.unstack(transp)
-		for item in lstm_output_unpacked:
-			logits = tf.layers.dense(inputs=item, units=vocab_size)
+		for index, item in enumerate(lstm_output_unpacked):
+			if index == 0:
+				logits = tf.layers.dense(inputs=item, units=vocab_size, name="output_dense")
+			if index > 0:
+				logits = tf.layers.dense(inputs=item, units=vocab_size, name="output_dense", reuse=True)
 			outputs.append(logits)
 			tensor_output = tf.stack(values=outputs, axis=0)
 			forward = tf.transpose(tensor_output, [1, 0, 2])

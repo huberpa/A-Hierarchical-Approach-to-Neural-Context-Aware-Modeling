@@ -49,17 +49,6 @@ for index, sentence in enumerate(nltk.sent_tokenize(text)):
     tokens.append(nltk.word_tokenize(sentence))
 tokens = [[word.lower() for word in sentence] for sentence in tokens]
 
-
-# Unigram probabilities from training
-unigram_path  = open(training_path, "r")
-unigram_text = unigram_path.read().decode('utf8')
-words = nltk.word_tokenize(unigram_text)
-words = [word.lower() for word in words]
-wordcount = Counter(words)
-wordUnigram = sorted(wordcount.items(), key=lambda item: item[1])
-unigrams = dict((word, count) for word, count in wordUnigram)
-
-
 # Load the index_to_word and word_to_index files to convert indizes into words
 word_to_index = []
 with open(vocab_path + "/word_to_index.json") as f:    
@@ -70,12 +59,11 @@ with open(vocab_path + "/index_to_word.json") as f:
 	index_to_word = json.load(f)
 
 # Compute the perplexity for each sentence
-probability_orig_mods = []
-probability_with_unigram = []
-sentence_level_perplexity = []
 words_not_in_vocab = 0
 all_words_probability_with_modified = []
-
+nb_changed_words = 0
+nb_changed_words_high_prob = 0
+nb_words_high_prob = 0
 # Iterate through all the sentences in the data and compute the perplexity
 for index, sentence in enumerate(tokens):
 	value_sentence = []
@@ -102,7 +90,8 @@ for index, sentence in enumerate(tokens):
 		else:
 			checkedWord = word[word.find("___")+3:word.rfind("___")]
 			changes.append([index, word[word.find("___")+3:word.rfind("___")]])
-		
+			nb_changed_words += 1
+
 		# Convert word into the according index
 		try:
 			value_sentence.append(word_to_index[checkedWord])
@@ -124,33 +113,24 @@ for index, sentence in enumerate(tokens):
 	# Evaluate the prediction
 	perplexity = 0.
 	for index, word in enumerate(prediction):
-
-		count_o = 1
-		try:
-			count_o = unigrams[index_to_word[str(input_perplexity[index])]]
-		except Exception:
-			count_o = count_o
-
-		all_words_probability_with_modified.append([word, 0, word*len(words)/(count_o), index_to_word[str(input_perplexity[index])]])
+		if word > 0.5:
+			nb_words_high_prob += 1
+		all_words_probability_with_modified.append([word, 0, "tbd", index_to_word[str(input_perplexity[index])]])
 
 		#check if word got replaced and if so, save in special array
 		for change in changes:
 			if change[0] == index:
 				try:	
-					# Substitude the original word with the modified one -> try to find these later
-					all_words_probability_with_modified[len(all_words_probability_with_modified)-1][1] = 1
+					if word > 0.5:
+						nb_changed_words_high_prob += 1
 
+					all_words_probability_with_modified[len(all_words_probability_with_modified)-1][1] = 1
 				except Exception:
 					words_not_in_vocab += 1
 
 
 #Sort all the probabilities to find modified words
 all_words_probability_with_modified.sort(key=lambda row: row[0], reverse=True)
-
-all_positions_modified = []
-for idx, element in enumerate(all_words_probability_with_modified):
-	if element[1] == 1:
-		all_positions_modified.append([idx, element[3], element[0]])
 
 modifications_in_highest_100 = 0
 modifications_in_highest_500 = 0
@@ -219,11 +199,15 @@ for index, prob in enumerate(all_words_probability_with_modified[:(len(all_words
 		if prob[1] == 1:
 			unigram_modifications_in_highest_30_percent += 1
 
+precision = nb_changed_words_high_prob/nb_words_high_prob
+recall = nb_changed_words_high_prob/nb_changed_words
 
 # Output the results
 print ""
-print "Words that got classified: "+str(len(all_positions_modified))
 print "Words not in vocabulary: " + str(words_not_in_vocab)
+print "System Precision: " + str(precision)
+print "System Recall: " + str(recall)
+print "System F1-Score: " + str(2*((precision*recall)/(precision+recall)))
 print "Modified words within highest 100 words on dataset: " + str(modifications_in_highest_100)
 print "Modified words within highest 500 words on dataset: " + str(modifications_in_highest_500)
 print "Modified words within highest 1000 words on dataset: " + str(modifications_in_highest_1000)
@@ -241,6 +225,9 @@ print "Modified words/unigram probability within highest 30 percent on dataset (
 
 with open("./perplexity_supervised.txt", "a") as f:
 	content = fileName
+	content += "System Precision: " + str(precision)
+	content += "System Recall: " + str(recall)
+	content += "System F1-Score: " + str(2*((precision*recall)/(precision+recall)))
 	content += ", Modified words within highest 100 words on dataset, " + str(modifications_in_highest_100)
 	content += ", Modified words within highest 500 words on dataset, " + str(modifications_in_highest_500)
 	content += ", Modified words within highest 1000 words on dataset, " + str(modifications_in_highest_1000)

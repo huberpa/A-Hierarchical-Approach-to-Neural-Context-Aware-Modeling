@@ -1,0 +1,4 @@
+
+Training started with: {'embedding_size': '4', 'layer_number': 1, 'data_path': './model_test/', 'batch_size': '2', 'epochs': 15, 'layer_dimension': 512, 'name': 'model'}
+epoch 1 / 15 2017-07-24 12:11:53.922205
+batch 1 / 14 2017-07-24 12:11:53.922607
