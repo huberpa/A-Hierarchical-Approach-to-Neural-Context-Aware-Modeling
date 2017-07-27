@@ -199,15 +199,20 @@ for index, prob in enumerate(all_words_probability_with_modified[:(len(all_words
 		if prob[1] == 1:
 			unigram_modifications_in_highest_30_percent += 1
 
-precision = nb_changed_words_high_prob/nb_words_high_prob
-recall = nb_changed_words_high_prob/nb_changed_words
+
+print "Changed words high prob: "+ str(nb_changed_words_high_prob)
+print "Words high prob: "+ str(nb_words_high_prob)
+print "Changed words: "+ str(nb_changed_words)
+
+#precision = nb_changed_words_high_prob / nb_words_high_prob
+#recall = nb_changed_words_high_prob / nb_changed_words
 
 # Output the results
 print ""
 print "Words not in vocabulary: " + str(words_not_in_vocab)
-print "System Precision: " + str(precision)
-print "System Recall: " + str(recall)
-print "System F1-Score: " + str(2*((precision*recall)/(precision+recall)))
+#print "System Precision: " + str(precision)
+#print "System Recall: " + str(recall)
+#print "System F1-Score: " + str(2*((precision*recall)/(precision+recall)))
 print "Modified words within highest 100 words on dataset: " + str(modifications_in_highest_100)
 print "Modified words within highest 500 words on dataset: " + str(modifications_in_highest_500)
 print "Modified words within highest 1000 words on dataset: " + str(modifications_in_highest_1000)
@@ -225,9 +230,9 @@ print "Modified words/unigram probability within highest 30 percent on dataset (
 
 with open("./perplexity_supervised.txt", "a") as f:
 	content = fileName
-	content += "System Precision: " + str(precision)
-	content += "System Recall: " + str(recall)
-	content += "System F1-Score: " + str(2*((precision*recall)/(precision+recall)))
+	#content += "System Precision: " + str(precision)
+	#content += "System Recall: " + str(recall)
+	#content += "System F1-Score: " + str(2*((precision*recall)/(precision+recall)))
 	content += ", Modified words within highest 100 words on dataset, " + str(modifications_in_highest_100)
 	content += ", Modified words within highest 500 words on dataset, " + str(modifications_in_highest_500)
 	content += ", Modified words within highest 1000 words on dataset, " + str(modifications_in_highest_1000)

@@ -27,6 +27,7 @@ model_name = options.name
 import tensorflow as tf 
 import numpy as np
 import json
+import copy
 import os
 import datetime
 from tensorflow.python.framework import dtypes
@@ -71,11 +72,14 @@ def seq2seq(batch_size,enc_input_dimension,enc_timesteps_max,dec_timesteps_max,h
 	with variable_scope.variable_scope("Output_layer"):
 		transp = tf.transpose(lstm_output, [1, 0, 2])
 		lstm_output_unpacked = tf.unstack(transp)
-		for item in lstm_output_unpacked:
-			logits = tf.layers.dense(inputs=item, units=1)
+		for index, item in enumerate(lstm_output_unpacked):
+			if index == 0:
+				logits = tf.layers.dense(inputs=item, units=1, name="output_dense")
+			if index > 0:
+				logits = tf.layers.dense(inputs=item, units=1, name="output_dense", reuse=True)
 			outputs.append(logits)
-			tensor_output = tf.stack(values=outputs, axis=0)
-			forward = tf.transpose(tensor_output, [1, 0, 2])
+		tensor_output = tf.stack(values=outputs, axis=0)
+		forward = tf.transpose(tensor_output, [1, 0, 2])
 
 	# Training
 	with variable_scope.variable_scope("Backpropagation"):
@@ -165,19 +169,22 @@ with tf.Session() as session:
 	if not os.path.exists(data_path+'/models/'):
 		os.makedirs(data_path+'/models/')
 
-	with open(data_path+'/models/'+model_name+"_log.txt",'a') as f:
+	if not os.path.exists(data_path+'/models/'+model_name):
+		os.makedirs(data_path+'/models/'+model_name)
+
+	with open(data_path+'/models/'+model_name+"/log.txt",'a') as f:
 		f.write("{}\n".format(""))
 		f.write("{}\n".format("Training started with: " + str(options)))
 
 	for epoch in range(epochs):
 		print "epoch " + str(epoch+1) + " / " + str(epochs)
-		with open(data_path+'/models/'+model_name+"_log.txt",'a') as f:
+		with open(data_path+'/models/'+model_name+"/log.txt",'a') as f:
 			f.write("{}\n".format("epoch " + str(epoch+1) + " / " + str(epochs) + " " + str(datetime.datetime.now())))
 
 		for batch_index,_ in enumerate(encoder_input_data_batch):
 
 			print "----batch " + str(batch_index+1) + " / " + str(len(encoder_input_data_batch))
-			with open(data_path+'/models/'+model_name+"_log.txt",'a') as f:
+			with open(data_path+'/models/'+model_name+"/log.txt",'a') as f:
 				f.write("{}\n".format("batch " + str(batch_index+1) + " / " + str(len(encoder_input_data_batch)) + " " + str(datetime.datetime.now())))
 
 			feed = {}
@@ -187,10 +194,40 @@ with tf.Session() as session:
 			feed["decoder_length"] = decoder_input_length_batch[batch_index]
 			feed["decoder_outputs"] = decoder_output_data_batch[batch_index]
 			feed["mask"] = decoder_mask_batch[batch_index]
+
+			'''
+			shape1 = copy.deepcopy(feed["encoder_inputs"])
+			shape2 = copy.deepcopy(feed["decoder_inputs"])
+			shape3 = copy.deepcopy(feed["decoder_outputs"])
+			shape4 = copy.deepcopy(feed["mask"])
+
+
+			if len(np.asarray(shape1).shape)<3:
+				print ("*"*100)
+				print "encoder_inputs"
+				print np.asarray(shape1).shape
+
+			if len(np.asarray(shape2).shape)<2:
+				print ("*"*100)
+				print "decoder_inputs"
+				print np.asarray(shape2).shape
+
+			if len(np.asarray(shape3).shape)<2:
+				print ("*"*100)
+				print "decoder_outputs"
+				print np.asarray(shape3).shape
+				print feed["decoder_outputs"]
+
+			if len(np.asarray(shape4).shape)<2:
+				print ("*"*100)
+				print "mask"
+				print np.asarray(shape4).shape
+				'''
+
 			training_output = session.run([updates, loss], feed_dict={enc_in:feed["encoder_inputs"], dec_in:feed["decoder_inputs"], dec_out: feed["decoder_outputs"], mask: feed["mask"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"]})
 
 		print "Saving epoch..."
-		saver.save(session, data_path+'/models/'+model_name, global_step = epoch+1)
+		saver.save(session, data_path+'/models/'+model_name+"/"+model_name, global_step = epoch+1)
 
 print "Training finished..."
 ##############################################

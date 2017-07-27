@@ -148,8 +148,8 @@ for index1, talk in enumerate(talk_sentence_embedding):
 	training_decoder_input_talk = talks_numerified[index1][0]
 	training_decoder_output_talk = classToken[index1][0]
 	if len(training_decoder_input_talk) > max_sentence_length:
-		training_decoder_input_talk = training_decoder_input_talk[:max_sentence_length+1]
-		training_decoder_output_talk = training_decoder_output_talk[:max_sentence_length+1]
+		training_decoder_input_talk = training_decoder_input_talk[:max_sentence_length]
+		training_decoder_output_talk = training_decoder_output_talk[:max_sentence_length]
 	training_decoder_input_data.append(training_decoder_input_talk)
 	training_decoder_output_data.append(training_decoder_output_talk)
 	
@@ -167,8 +167,8 @@ for index1, talk in enumerate(talk_sentence_embedding):
 		training_decoder_input_talk = talks_numerified[index1][index2+1]
 		training_decoder_output_talk = classToken[index1][index2+1]
 		if len(training_decoder_input_talk) > max_sentence_length:
-			training_decoder_input_talk = training_decoder_input_talk[:max_sentence_length+1]
-			training_decoder_output_talk = training_decoder_output_talk[:max_sentence_length+1]
+			training_decoder_input_talk = training_decoder_input_talk[:max_sentence_length]
+			training_decoder_output_talk = training_decoder_output_talk[:max_sentence_length]
 		training_decoder_input_data.append(training_decoder_input_talk)
 		training_decoder_output_data.append(training_decoder_output_talk)
 

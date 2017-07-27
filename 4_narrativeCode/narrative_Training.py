@@ -77,8 +77,8 @@ def seq2seq(batch_size,enc_input_dimension,enc_timesteps_max,dec_timesteps_max,h
 			if index > 0:
 				logits = tf.layers.dense(inputs=item, units=vocab_size, name="output_dense", reuse=True)
 			outputs.append(logits)
-			tensor_output = tf.stack(values=outputs, axis=0)
-			forward = tf.transpose(tensor_output, [1, 0, 2])
+		tensor_output = tf.stack(values=outputs, axis=0)
+		forward = tf.transpose(tensor_output, [1, 0, 2])
 
 	# Training
 	with variable_scope.variable_scope("Backpropagation"):
@@ -171,19 +171,22 @@ with tf.Session(config=session_config) as session:
 	if not os.path.exists(data_path+'/models/'):
 		os.makedirs(data_path+'/models/')
 
-	with open(data_path+'/models/'+model_name+"_log.txt",'a') as f:
+	if not os.path.exists(data_path+'/models/'+model_name):
+		os.makedirs(data_path+'/models/'+model_name)
+
+	with open(data_path+'/models/'+model_name+"/log.txt",'a') as f:
 		f.write("{}\n".format(""))
 		f.write("{}\n".format("Training started with: " + str(options)))
 
 	for epoch in range(epochs):
 		print "epoch " + str(epoch+1) + " / " + str(epochs)
-		with open(data_path+'/models/'+model_name+"_log.txt",'a') as f:
+		with open(data_path+'/models/'+model_name+"/log.txt",'a') as f:
 			f.write("{}\n".format("epoch " + str(epoch+1) + " / " + str(epochs) + " " + str(datetime.datetime.now())))
 
 		for batch_index,_ in enumerate(encoder_input_data_batch):
 
 			print "----batch " + str(batch_index+1) + " / " + str(len(encoder_input_data_batch))
-			with open(data_path+'/models/'+model_name+"_log.txt",'a') as f:
+			with open(data_path+'/models/'+model_name+"/log.txt",'a') as f:
 				f.write("{}\n".format("batch " + str(batch_index+1) + " / " + str(len(encoder_input_data_batch)) + " " + str(datetime.datetime.now())))
 
 			feed = {}
@@ -209,7 +212,7 @@ with tf.Session(config=session_config) as session:
 			training_output = session.run([updates, loss], feed_dict={enc_in:feed["encoder_inputs"], dec_in:feed["decoder_inputs"], dec_out: feed["decoder_outputs"], mask: feed["mask"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"]})
 
 		print "Saving epoch..."
-		saver.save(session, data_path+'/models/'+model_name, global_step = epoch+1)
+		saver.save(session, data_path+'/models/'+model_name+"/"+model_name, global_step = epoch)
 
 print "Training finished..."
 ##############################################
