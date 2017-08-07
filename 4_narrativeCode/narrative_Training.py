@@ -37,15 +37,15 @@ from tensorflow.python.ops import variable_scope
 
 # Helper functions
 ##############################################
-def seq2seq(batch_size,enc_input_dimension,enc_timesteps_max,dec_timesteps_max,hidden_units,hidden_layers,input_embedding_size,vocab_size):
+def seq2seq(enc_input_dimension,enc_timesteps_max,dec_timesteps_max,hidden_units,hidden_layers,input_embedding_size,vocab_size):
 
 	# Inputs / Outputs / Cells
-	encoder_inputs = tf.placeholder(dtypes.float32, shape=[batch_size, enc_timesteps_max, enc_input_dimension], name="encoder_inputs")
-	encoder_lengths = tf.placeholder(dtypes.int32, shape=[batch_size], name="encoder_lengths")
-	decoder_inputs = tf.placeholder(dtypes.int64, shape=[batch_size, dec_timesteps_max], name="decoder_inputs")
-	decoder_lengths = tf.placeholder(dtypes.int32, shape=[batch_size], name="decoder_lengths")
-	decoder_outputs = tf.placeholder(dtypes.int64, shape=[batch_size, dec_timesteps_max], name="decoder_outputs")
-	masking = tf.placeholder(dtypes.float32, shape=[batch_size, dec_timesteps_max], name="loss_masking")
+	encoder_inputs = tf.placeholder(dtypes.float32, shape=[None, enc_timesteps_max, enc_input_dimension], name="encoder_inputs")
+	encoder_lengths = tf.placeholder(dtypes.int32, shape=[None], name="encoder_lengths")
+	decoder_inputs = tf.placeholder(dtypes.int64, shape=[None, dec_timesteps_max], name="decoder_inputs")
+	decoder_lengths = tf.placeholder(dtypes.int32, shape=[None], name="decoder_lengths")
+	decoder_outputs = tf.placeholder(dtypes.int64, shape=[None, dec_timesteps_max], name="decoder_outputs")
+	masking = tf.placeholder(dtypes.float32, shape=[None, dec_timesteps_max], name="loss_masking")
 
 	# Cells
 	encoder_cell = single_cell_enc = tf.contrib.rnn.LSTMCell(hidden_units)
@@ -153,7 +153,7 @@ decoder_mask_batch = createBatch(decoder_mask, batch_size)
 
 # Create computational graph
 print "Create computational graph..."
-network, updates, loss, enc_in, dec_in, dec_out, mask, enc_len, dec_len = seq2seq(batch_size=batch_size, enc_input_dimension=enc_input_dimension, enc_timesteps_max=enc_timesteps_max, dec_timesteps_max=dec_timesteps_max, hidden_units=hidden_dimensions, hidden_layers=nb_hidden_layers, input_embedding_size=embedding_size, vocab_size=vocab_size)
+network, updates, loss, enc_in, dec_in, dec_out, mask, enc_len, dec_len = seq2seq(enc_input_dimension=enc_input_dimension, enc_timesteps_max=enc_timesteps_max, dec_timesteps_max=dec_timesteps_max, hidden_units=hidden_dimensions, hidden_layers=nb_hidden_layers, input_embedding_size=embedding_size, vocab_size=vocab_size)
 
 # Launch the graph
 print "Launch the graph..."
@@ -162,7 +162,7 @@ session_config.gpu_options.per_process_gpu_memory_fraction = 0.90
 
 with tf.Session(config=session_config) as session:
 	session.run(tf.global_variables_initializer())
-	saver = tf.train.Saver()
+	saver = tf.train.Saver(max_to_keep=None)
 	writer = tf.summary.FileWriter(".", graph=tf.get_default_graph())
 	
 	# Training

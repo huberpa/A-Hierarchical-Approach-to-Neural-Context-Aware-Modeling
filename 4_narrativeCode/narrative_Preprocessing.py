@@ -20,7 +20,7 @@ max_sentence_length = int(options.sentence_max_length)
 max_sentence_forecast = int(options.sentence_forecast)
 corpus = options.corpus
 if corpus == "DEV":
-    training_data = "./../tedData/sets/development/talkseperated_original_development_texts.txt"
+    training_data = "./../tedData/sets/development/talkseperated_indicated_development_texts.txt"
 if corpus == "PRD":
     training_data = "./../tedData/sets/training/talkseperated_original_training_texts.txt"
 ##############################################
@@ -100,6 +100,7 @@ for index, talk in enumerate(plain_talks):
 # Transform text into 3d tensor with indizes and sentence embeddings
 print "Calculate sentence embeddings..."
 talks_numerified = []
+talks_original = []
 talk_sentence_embedding = []
 talk_maxLength = 0 # 518 for PRD
 for index0, talk in enumerate(talks):
@@ -107,13 +108,28 @@ for index0, talk in enumerate(talks):
 		talk_maxLength = len(talk)
 	talks_numerified.append([])
 	talk_sentence_embedding.append([])
+	talks_original.append([])
+
 	for index1, sentence in enumerate(talk):
 		talks_numerified[index0].append([])
+		talks_original[index0].append([])
+		
 		talks_numerified[index0][index1].append(word_to_index[start_token])
+		talks_original[index0][index1].append(start_token)
+
 		for index2, word in enumerate(sentence):
-			talks_numerified[index0][index1].append(word_to_index[word] if word in word_to_index else word_to_index[unknown_token])
+			checkedWord = ""
+			if word.find("___") == -1:
+				checkedWord = word
+			else:
+				checkedWord = word[word.find("___")+3:word.rfind("___")]
+
+			talks_numerified[index0][index1].append(word_to_index[checkedWord] if checkedWord in word_to_index else word_to_index[unknown_token])
+			talks_original[index0][index1].append(word if checkedWord in word_to_index else unknown_token)
+
 		talks_numerified[index0][index1].append(word_to_index[end_token])
-			
+		talks_original[index0][index1].append(end_token)
+
 		trainInput = np.zeros((1, len(talks_numerified[index0][index1])), dtype=np.int16)
 		for index, idx in enumerate(talks_numerified[index0][index1]):
 			trainInput[0, index] = idx
@@ -128,23 +144,28 @@ for index, talk in enumerate(talk_sentence_embedding):
 training_encoder_input_data = []
 training_decoder_input_data = []
 training_decoder_output_data = []
+training_decoder_original_output_data = []
 
 print "Create network input shape..."
 for index1, talk in enumerate(talk_sentence_embedding):
 
-	# The first sentence with no history
+	# The first sentence with no history 
 	training_encoder_input_talk = []
 	training_encoder_input_data.append(copy.copy(training_encoder_input_talk))
 	training_decoder_input_talk = talks_numerified[index1][0]
 	training_decoder_output_talk = talks_numerified[index1][0]
+	training_decoder_original_output_talk = talks_original[index1][0]
 	if len(training_decoder_input_talk) > max_sentence_length:
 		training_decoder_input_talk = training_decoder_input_talk[:max_sentence_length+1]
 		training_decoder_output_talk = training_decoder_output_talk[:max_sentence_length+1]
+		training_decoder_original_output_talk = training_decoder_original_output_talk[:max_sentence_length+1]
 	training_decoder_input_talk = training_decoder_input_talk[:len(training_decoder_input_talk)-1]
 	training_decoder_output_talk = training_decoder_output_talk[1:]
+	training_decoder_original_output_talk = training_decoder_original_output_talk[1:]
 	training_decoder_input_data.append(training_decoder_input_talk)
 	training_decoder_output_data.append(training_decoder_output_talk)
-	
+	training_decoder_original_output_data.append(training_decoder_original_output_talk)
+
 	# From sentence 2 ... n
 	for index2, sentence_Embedding in enumerate(talk[:len(talk)-1]):
 		# ENCODER
@@ -158,14 +179,17 @@ for index1, talk in enumerate(talk_sentence_embedding):
 		#DECODER
 		training_decoder_input_talk = talks_numerified[index1][index2+1]
 		training_decoder_output_talk = talks_numerified[index1][index2+1]
+		training_decoder_original_output_talk = talks_original[index1][index2+1]
 		if len(training_decoder_input_talk) > max_sentence_length:
 			training_decoder_input_talk = training_decoder_input_talk[:max_sentence_length+1]
 			training_decoder_output_talk = training_decoder_output_talk[:max_sentence_length+1]
+			training_decoder_original_output_talk = training_decoder_original_output_talk[:max_sentence_length+1]
 		training_decoder_input_talk = training_decoder_input_talk[:len(training_decoder_input_talk)-1]
 		training_decoder_output_talk = training_decoder_output_talk[1:]
+		training_decoder_original_output_talk = training_decoder_original_output_talk[1:]
 		training_decoder_input_data.append(training_decoder_input_talk)
 		training_decoder_output_data.append(training_decoder_output_talk)
-	
+		training_decoder_original_output_data.append(training_decoder_original_output_talk)
 
 # Find lengths
 print "Calculate dynamic lengths..."
@@ -194,6 +218,9 @@ for idx, sentence in enumerate(training_decoder_input_data):
 for idx, sentence in enumerate(training_decoder_output_data):
 	training_decoder_output_data[idx] = sentence + [0] * (max_sentence_length - len(sentence))
 
+for idx, sentence in enumerate(training_decoder_original_output_data):
+	training_decoder_original_output_data[idx] = sentence + [index_to_word["0"]] * (max_sentence_length - len(sentence))
+
 for idx, sentence in enumerate(training_decoder_mask):
 	training_decoder_mask[idx] = sentence + [0] * (max_sentence_length - len(sentence))
 
@@ -215,6 +242,10 @@ if not os.path.exists(save_path+"/decoder_input_data.txt"):
 if not os.path.exists(save_path+"/decoder_output_data.txt"):
 	with open(save_path+"/decoder_output_data.txt",'w') as f:
 		json.dump(training_decoder_output_data, f)
+
+if not os.path.exists(save_path+"/decoder_original_output_data.txt"):
+	with open(save_path+"/decoder_original_output_data.txt",'w') as f:
+		json.dump(training_decoder_original_output_data, f)
 
 if not os.path.exists(save_path+"/encoder_input_length.txt"):
 	with open(save_path+"/encoder_input_length.txt",'w') as f:
