@@ -3,13 +3,14 @@
 ##############################################
 import optparse
 parser = optparse.OptionParser()
-parser.add_option('--sentence_forecast', action="store", dest="sentence_forecast", help="The number of past sentence that are taken into account(default: 10)", default=10)
+parser.add_option('--sentence_forecast', action="store", dest="sentence_forecast", help="The number of past sentence that are taken into account (default: 10)", default=10)
 parser.add_option('--sentence_max_length', action="store", dest="sentence_max_length", help="The maximal sentence length for decoder inputs (default: 50)", default=50)
-parser.add_option('--sentence_model', action="store", dest="sentence_model", help="The path to the sentence embeddings model(default: .)", default=".")
-parser.add_option('--sentence_vocab', action="store", dest="sentence_vocab", help="The path to the sentence embeddings vocabulary(default: .)", default=".")
-parser.add_option('--sentence_log', action="store", dest="sentence_log", help="The path to the sentence embeddings logfiles(default: .)", default=".")
-parser.add_option('--supervised_text', action="store", dest="supervised_text", help="The path to the supervised text (default: .)", default=".")
-parser.add_option('--save_path', action="store", dest="save_path", help="The path to save the folders (logging, models etc.)  (default: .)", default=".")
+parser.add_option('--sentence_model', action="store", dest="sentence_model", help="The path to the sentence embeddings model (default: .)", default=".")
+parser.add_option('--sentence_vocab', action="store", dest="sentence_vocab", help="The path to the sentence embeddings vocabulary (default: .)", default=".")
+parser.add_option('--sentence_log', action="store", dest="sentence_log", help="The path to the sentence embeddings logfiles (default: .)", default=".")
+parser.add_option('--save_path', action="store", dest="save_path", help="The path to save the files (default: .)", default=".")
+parser.add_option('--corpus', action="store", dest="corpus", help="The corpus that should be used (PRD or DEV)  (default: PRD)", default="PRD")
+
 options, args = parser.parse_args()
 sentence_model = options.sentence_model
 sentence_vocab = options.sentence_vocab
@@ -17,7 +18,11 @@ sentence_log = options.sentence_log
 save_path = options.save_path
 max_sentence_length = int(options.sentence_max_length)
 max_sentence_forecast = int(options.sentence_forecast)
-supervised_text = options.supervised_text
+corpus = options.corpus
+if corpus == "DEV":
+    training_data = "./../tedData/sets/development/talkseperated_indicated_development_texts.txt"
+if corpus == "PRD":
+    training_data = "./../tedData/sets/training/talkseperated_original_training_texts.txt"
 ##############################################
 
 # Imports
@@ -49,7 +54,7 @@ unknown_token = parameters['unknown_token']
 
 # Open the training dataset
 print "Reading training data..."
-path  = open(supervised_text, "r")
+path  = open(training_data, "r")
 train = path.read().decode('utf8')
 
 # Open the sentence index_to_word and word_to_index
@@ -92,40 +97,40 @@ for index, talk in enumerate(plain_talks):
 	for idx, sentence in enumerate(sentences): 
 	    talks[index][idx] = nltk.word_tokenize(sentence.lower())
 
-# Find replaced words --> Add 1 as Output --> Else always 0
-
-# !!!
-
-# FROM HERE CHANGES!!!
 # Transform text into 3d tensor with indizes and sentence embeddings
 print "Calculate sentence embeddings..."
 talks_numerified = []
+talks_original = []
 talk_sentence_embedding = []
-classToken = []
 talk_maxLength = 0 # 518 for PRD
 for index0, talk in enumerate(talks):
 	if len(talk) > talk_maxLength:
 		talk_maxLength = len(talk)
 	talks_numerified.append([])
-	classToken.append([])
 	talk_sentence_embedding.append([])
+	talks_original.append([])
+
 	for index1, sentence in enumerate(talk):
 		talks_numerified[index0].append([])
-		classToken[index0].append([])
+		talks_original[index0].append([])
+		
 		talks_numerified[index0][index1].append(word_to_index[start_token])
-		classToken[index0][index1].append(0)
+		talks_original[index0][index1].append(start_token)
+
 		for index2, word in enumerate(sentence):
-			classToken[index0][index1].append(0)
-			proofWord = word
-			if word.find("___") > -1:
-				#print "found one replaced word in sentence " + str(index1) + " word " + str(index2)
-				# +1 because of start token, which is manually added before 
-				classToken[index0][index1][index2+1] = 1
-				proofWord = word[word.find("___")+3:word.rfind("___")]
-			talks_numerified[index0][index1].append(word_to_index[proofWord] if proofWord in word_to_index else word_to_index[unknown_token])
+			checkedWord = ""
+			if word.find("___") == -1:
+				checkedWord = word
+			else:
+				checkedWord = word[word.find("___")+3:word.rfind("___")]
+
+			talks_numerified[index0][index1].append(word_to_index[checkedWord] if checkedWord in word_to_index else word_to_index[unknown_token])
+			talks_original[index0][index1].append(word if checkedWord in word_to_index else unknown_token)
+
 		talks_numerified[index0][index1].append(word_to_index[end_token])
-		classToken[index0][index1].append(0)
-		trainInput = np.zeros((1, len(talks_numerified[index0][index1])), dtype=np.int16)
+		talks_original[index0][index1].append(end_token)
+
+		trainInput = np.zeros((1, len(talks_numerified[index0][index1])), dtype=np.int16)at
 		for index, idx in enumerate(talks_numerified[index0][index1]):
 			trainInput[0, index] = idx
 		talk_sentence_embedding[index0].append(newSentenceModel.predict(trainInput, verbose=0)[0][-1]) # Has shape (#nb_talks, #talk_length(nb_sentences), #hidden_state_neurons)
@@ -139,21 +144,12 @@ for index, talk in enumerate(talk_sentence_embedding):
 training_encoder_input_data = []
 training_decoder_input_data = []
 training_decoder_output_data = []
+training_decoder_original_output_data = []
 
 print "Create network input shape..."
 for index1, talk in enumerate(talk_sentence_embedding):
-
-	# The first sentence with no history
 	training_encoder_input_talk = []
-	training_encoder_input_data.append(copy.copy(training_encoder_input_talk))
-	training_decoder_input_talk = talks_numerified[index1][0]
-	training_decoder_output_talk = classToken[index1][0]
-	if len(training_decoder_input_talk) > max_sentence_length:
-		training_decoder_input_talk = training_decoder_input_talk[:max_sentence_length]
-		training_decoder_output_talk = training_decoder_output_talk[:max_sentence_length]
-	training_decoder_input_data.append(training_decoder_input_talk)
-	training_decoder_output_data.append(training_decoder_output_talk)
-	
+
 	# From sentence 2 ... n
 	for index2, sentence_Embedding in enumerate(talk[:len(talk)-1]):
 		# ENCODER
@@ -166,13 +162,18 @@ for index1, talk in enumerate(talk_sentence_embedding):
 
 		#DECODER
 		training_decoder_input_talk = talks_numerified[index1][index2+1]
-		training_decoder_output_talk = classToken[index1][index2+1]
+		training_decoder_output_talk = talks_numerified[index1][index2+1]
+		training_decoder_original_output_talk = talks_original[index1][index2+1]
 		if len(training_decoder_input_talk) > max_sentence_length:
-			training_decoder_input_talk = training_decoder_input_talk[:max_sentence_length]
-			training_decoder_output_talk = training_decoder_output_talk[:max_sentence_length]
+			training_decoder_input_talk = training_decoder_input_talk[:max_sentence_length+1]
+			training_decoder_output_talk = training_decoder_output_talk[:max_sentence_length+1]
+			training_decoder_original_output_talk = training_decoder_original_output_talk[:max_sentence_length+1]
+		training_decoder_input_talk = training_decoder_input_talk[:len(training_decoder_input_talk)-1]
+		training_decoder_output_talk = training_decoder_output_talk[1:]
+		training_decoder_original_output_talk = training_decoder_original_output_talk[1:]
 		training_decoder_input_data.append(training_decoder_input_talk)
 		training_decoder_output_data.append(training_decoder_output_talk)
-
+		training_decoder_original_output_data.append(training_decoder_original_output_talk)
 
 # Find lengths
 print "Calculate dynamic lengths..."
@@ -201,6 +202,9 @@ for idx, sentence in enumerate(training_decoder_input_data):
 for idx, sentence in enumerate(training_decoder_output_data):
 	training_decoder_output_data[idx] = sentence + [0] * (max_sentence_length - len(sentence))
 
+for idx, sentence in enumerate(training_decoder_original_output_data):
+	training_decoder_original_output_data[idx] = sentence + [index_to_word["0"]] * (max_sentence_length - len(sentence))
+
 for idx, sentence in enumerate(training_decoder_mask):
 	training_decoder_mask[idx] = sentence + [0] * (max_sentence_length - len(sentence))
 
@@ -223,6 +227,10 @@ if not os.path.exists(save_path+"/decoder_output_data.txt"):
 	with open(save_path+"/decoder_output_data.txt",'w') as f:
 		json.dump(training_decoder_output_data, f)
 
+if not os.path.exists(save_path+"/decoder_original_output_data.txt"):
+	with open(save_path+"/decoder_original_output_data.txt",'w') as f:
+		json.dump(training_decoder_original_output_data, f)
+
 if not os.path.exists(save_path+"/encoder_input_length.txt"):
 	with open(save_path+"/encoder_input_length.txt",'w') as f:
 		json.dump(training_encoder_input_length, f)
@@ -244,4 +252,3 @@ if not os.path.exists(save_path+"/index_to_word.txt"):
 		json.dump(index_to_word, f)
 
 print "Preprocessing finished..."
-

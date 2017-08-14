@@ -3,12 +3,17 @@
 ##############################################
 import optparse
 parser = optparse.OptionParser()
-parser.add_option('--model_path', action="store", dest="model_path", help="The path to the model checkpoint file (default: '')", default="")
+parser.add_option('--model_path', action="store", dest="model_path", help="The path to the model file (default: '')", default="")
 parser.add_option('--data_path', action="store", dest="data_path", help="The path to the dev or test data that should be tested on, including index_to_word and word_to_index (default: .)", default=".")
+parser.add_option('-u', '--unigram', action="store", dest="unigram", help="relative path to the dataset that was trained on (default: .)", default=".")
+parser.add_option('--save_file', action="store", dest="save_file", help="path to the file where the results should be stored (default: .)", default=".")
+
 options, args = parser.parse_args()
 model_path = options.model_path
 data_path = options.data_path
-batch_size = 1
+save_file = options.save_file
+training_path = options.unigram
+batch_size = 200
 ##############################################
 
 
@@ -18,6 +23,9 @@ import tensorflow as tf
 import numpy as np
 import json
 import os
+import nltk
+from collections import Counter
+import math
 ##############################################
 
 
@@ -40,7 +48,7 @@ def softmax(x):
 
 # Main
 ##############################################
- 
+
 # Load files
 print "Reading network input data..."
 with open (data_path+"/encoder_input_data.txt", 'r') as f:
@@ -79,6 +87,15 @@ encoder_input_length_batch = createBatch(encoder_input_length, batch_size)
 decoder_input_length_batch = createBatch(decoder_input_length, batch_size)
 decoder_mask_batch = createBatch(decoder_mask, batch_size)
 
+# Unigram probabilities from training
+unigram_path  = open(training_path, "r")
+unigram_text = unigram_path.read().decode('utf8')
+u_words = nltk.word_tokenize(unigram_text)
+u_words = [word.lower() for word in u_words]
+wordcount = Counter(u_words)
+wordUnigram = sorted(wordcount.items(), key=lambda item: item[1])
+unigrams = dict((word, count) for word, count in wordUnigram)
+
 # Launch the graph
 print "Launch the graph..."
 session_config = tf.ConfigProto(allow_soft_placement=True)    
@@ -91,42 +108,74 @@ with tf.Session(config=session_config) as session:
 	
 	# Training
 	print "Start testing..."
-	results = []
-	for batch_index,_ in enumerate(encoder_input_data_batch[:2]):
-		feed = {}
 
-		# Inputs
+	unigrams_not_found = 0
+	results = []
+	for batch_index,_ in enumerate(encoder_input_data_batch):
+		feed = {}
 		feed["encoder_inputs"] = encoder_input_data_batch[batch_index]
 		feed["encoder_length"] = encoder_input_length_batch[batch_index]
 		feed["decoder_inputs"] = decoder_input_data_batch[batch_index]
 		feed["decoder_length"] = decoder_input_length_batch[batch_index]
-		
-		# For checking if it's a modified value
-		feed["decoder_outputs"] = decoder_output_data_batch[batch_index]
-		feed["mask"] = decoder_mask_batch[batch_index]
 
 		result_raw = session.run(variables[0], feed_dict={variables[3]:feed["encoder_inputs"], variables[4]:feed["decoder_inputs"], variables[7]: feed["encoder_length"], variables[8]: feed["decoder_length"]})
-		results.append(result_raw)
+		result_raw.tolist()
 
-	# Have all the data for the corpus
-	# Make it probabilities
-	todo
+		for idx1, sentence in enumerate(result_raw):
+			for idx2, word in enumerate(sentence):
+				word_modified = 0
+				word_probabilities = softmax(word)
+				original_word = decoder_original_output_data_batch[batch_index][idx1][idx2]
+				checkedword = original_word
+				if original_word.find("___") != -1:
+					word_modified = 1
+					checkedword = original_word[original_word.find("___")+3:original_word.rfind("___")]
 
-	# get values for the real/modified words (indicate modified ones with (value, 1))
-	for idx1, batch in enumerate(results):
-		for idx2, sentence in enumerate(batch):
-			for idx3, word in enumerate(single_batch):
-				# Check for the score of the real word
-				
+				count_unigram = 1
+				try:
+					count_unigram = unigrams[checkedword]
+				except Exception:
+					unigrams_not_found += 1
+
+				word_index = word_to_index[checkedword] if checkedword in word_to_index else word_to_index["<UNKWN>"]
+				if original_word != "<PAD>":
+					results.append([str(word_probabilities[word_index]), str((word_probabilities[word_index]*len(u_words))/count_unigram), word_modified, original_word])
+
+	with open(data_path+"/"+save_file+".txt",'a') as f:
+		print results
+		json.dump(results, f)
+					
+	print unigrams_not_found
 
 
-	#print results[0][0]
-	#print decoder_original_output_data_batch[0][0]
+with open(data_path+"/"+save_file+".txt",'r') as f:
+	results =json.load(f)
+
+#Sort all the probabilities to find modified words
+results.sort(key=lambda row: row[0])
+results_modified = []
+modifications_in_lowest_4000 = 0
+for idx, element in enumerate(results):
+	if element[2] == 1:
+		results_modified.append([idx, element[3], element[0]])
+		if idx <= 4000:
+			modifications_in_lowest_4000 += 1
+
+print "Number of words modified and in results_modified: "+str(len(results_modified))
+print "modifications_in_lowest_4000: "+str(modifications_in_lowest_4000)
 
 
+results.sort(key=lambda row: row[1])
+results_modified = []
+modifications_in_lowest_4000 = 0
+for idx, element in enumerate(results):
+	if element[2] == 1:
+		results_modified.append([idx, element[3], element[1]])
+		if idx <= 4000:
+			modifications_in_lowest_4000 += 1
 
-	# Sort the words
-	# Get the most unlikely 4000result_probability = []
-		
+print "Number of words modified and in results_modified / unigram: "+str(len(results_modified))
+print "modifications_in_lowest_4000 / unigram: "+str(modifications_in_lowest_4000)
 
 ##############################################
+
