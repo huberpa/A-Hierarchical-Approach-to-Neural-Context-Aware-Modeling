@@ -83,7 +83,7 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_timesteps_max,hidden_units
 
 	# Training
 	with variable_scope.variable_scope("Backpropagation"):
-		loss = tf.contrib.seq2seq.sequence_loss(targets=decoder_outputs, logits=forward, weights=masking, average_across_timesteps=True )# Change to False?
+		loss = tf.contrib.seq2seq.sequence_loss(targets=decoder_outputs, logits=forward, weights=masking, average_across_timesteps=True)# Change to False?
 		updates = tf.train.AdamOptimizer().minimize(loss)
 
 	# Store variables for further training or execution
@@ -195,7 +195,7 @@ with tf.Session() as session:
 			feed["decoder_outputs"] = decoder_output_data_batch[batch_index]
 			feed["mask"] = decoder_mask_batch[batch_index]
 
-			'''
+			
 			shape1 = copy.deepcopy(feed["encoder_inputs"])
 			shape2 = copy.deepcopy(feed["decoder_inputs"])
 			shape3 = copy.deepcopy(feed["decoder_outputs"])
@@ -222,12 +222,11 @@ with tf.Session() as session:
 				print ("*"*100)
 				print "mask"
 				print np.asarray(shape4).shape
-				'''
 
 			training_output = session.run([updates, loss], feed_dict={enc_in:feed["encoder_inputs"], dec_in:feed["decoder_inputs"], dec_out: feed["decoder_outputs"], mask: feed["mask"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"]})
 
 		print "Saving epoch..."
-		saver.save(session, data_path+'/models/'+model_name+"/"+model_name, global_step = epoch+1)
+		saver.save(session, data_path+'/models/'+model_name+"/model", global_step = epoch+1)
 
 print "Training finished..."
 ##############################################

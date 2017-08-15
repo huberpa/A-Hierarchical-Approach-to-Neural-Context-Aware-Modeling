@@ -55,16 +55,12 @@ with open (data_path+"/encoder_input_data.txt", 'r') as f:
     encoder_input_data = json.load(f)
 with open (data_path+"/decoder_input_data.txt", 'r') as f:
     decoder_input_data = json.load(f)
-with open (data_path+"/decoder_output_data.txt", 'r') as f:
-    decoder_output_data = json.load(f)
 with open (data_path+"/decoder_original_output_data.txt", 'r') as f:
     decoder_original_output_data = json.load(f)
 with open (data_path+"/encoder_input_length.txt", 'r') as f:
     encoder_input_length = json.load(f)
 with open (data_path+"/decoder_input_length.txt", 'r') as f:
     decoder_input_length = json.load(f)
-with open (data_path+"/decoder_mask.txt", 'r') as f:
-    decoder_mask = json.load(f)
 with open (data_path+"/index_to_word.txt", 'r') as f:
     index_to_word = json.load(f)
 with open (data_path+"/word_to_index.txt", 'r') as f:
@@ -81,11 +77,9 @@ vocab_size = len(index_to_word)
 print "Split data into batches..."
 encoder_input_data_batch = createBatch(encoder_input_data, batch_size)
 decoder_input_data_batch = createBatch(decoder_input_data, batch_size)
-decoder_output_data_batch = createBatch(decoder_output_data, batch_size)
 decoder_original_output_data_batch = createBatch(decoder_original_output_data, batch_size)
 encoder_input_length_batch = createBatch(encoder_input_length, batch_size)
 decoder_input_length_batch = createBatch(decoder_input_length, batch_size)
-decoder_mask_batch = createBatch(decoder_mask, batch_size)
 
 # Unigram probabilities from training
 unigram_path  = open(training_path, "r")
@@ -111,6 +105,7 @@ with tf.Session(config=session_config) as session:
 
 	unigrams_not_found = 0
 	results = []
+	perplexity_results = []
 	for batch_index,_ in enumerate(encoder_input_data_batch):
 		feed = {}
 		feed["encoder_inputs"] = encoder_input_data_batch[batch_index]
@@ -122,6 +117,8 @@ with tf.Session(config=session_config) as session:
 		result_raw.tolist()
 
 		for idx1, sentence in enumerate(result_raw):
+			perplexity = 0
+			perplexity_count = 0
 			for idx2, word in enumerate(sentence):
 				word_modified = 0
 				word_probabilities = softmax(word)
@@ -139,43 +136,65 @@ with tf.Session(config=session_config) as session:
 
 				word_index = word_to_index[checkedword] if checkedword in word_to_index else word_to_index["<UNKWN>"]
 				if original_word != "<PAD>":
-					results.append([str(word_probabilities[word_index]), str((word_probabilities[word_index]*len(u_words))/count_unigram), word_modified, original_word])
+					if original_word != "<UNKWN>":
+						if word_probabilities[word_index] > 0:
+							perplexity_count += 1
+							perplexity += (math.log(word_probabilities[word_index], 2))
+						results.append([str(word_probabilities[word_index]), str((word_probabilities[word_index]*len(u_words))/count_unigram), word_modified, original_word])
+			
+			perplexity = -perplexity/perplexity_count
+			perplexity_results.append(int(2**(perplexity)))
 
-	with open(data_path+"/"+save_file+".txt",'a') as f:
-		print results
+
+	with open(data_path+"/tests/"+save_file+"_word_probability.txt",'a') as f:
 		json.dump(results, f)
-					
+		
+	with open(data_path+"/tests/"+save_file+"_sentence_perplexity.txt",'a') as f:
+		json.dump(perplexity_results, f)
+
 	print unigrams_not_found
 
 
-with open(data_path+"/"+save_file+".txt",'r') as f:
+with open(data_path+"/tests/"+save_file+"_word_probability.txt",'r') as f:
 	results =json.load(f)
+
+with open(data_path+"/tests/"+save_file+"_sentence_perplexity.txt",'r') as f:
+	perplexity_results =json.load(f)
 
 #Sort all the probabilities to find modified words
 results.sort(key=lambda row: row[0])
 results_modified = []
 modifications_in_lowest_4000 = 0
+unkwns_in_lowest_4000 = 0
 for idx, element in enumerate(results):
+	if element[3] == "<UNKWN>":
+		unkwns_in_lowest_4000 += 1
 	if element[2] == 1:
 		results_modified.append([idx, element[3], element[0]])
 		if idx <= 4000:
 			modifications_in_lowest_4000 += 1
 
-print "Number of words modified and in results_modified: "+str(len(results_modified))
-print "modifications_in_lowest_4000: "+str(modifications_in_lowest_4000)
-
+with open(data_path+"/tests/"+save_file+"_results.txt",'a') as f:
+	json.dump("{}\n".format("Number of words modified and in results_modified: "+str(len(results_modified))), f)
+	json.dump("{}\n".format("modifications_in_lowest_4000: "+str(modifications_in_lowest_4000)), f)
 
 results.sort(key=lambda row: row[1])
 results_modified = []
 modifications_in_lowest_4000 = 0
+unkwns_in_lowest_4000 = 0
 for idx, element in enumerate(results):
+	if element[3] == "<UNKWN>":
+		unkwns_in_lowest_4000 += 1
 	if element[2] == 1:
 		results_modified.append([idx, element[3], element[1]])
 		if idx <= 4000:
 			modifications_in_lowest_4000 += 1
 
-print "Number of words modified and in results_modified / unigram: "+str(len(results_modified))
-print "modifications_in_lowest_4000 / unigram: "+str(modifications_in_lowest_4000)
+with open(data_path+"/tests/"+save_file+"_results.txt",'a') as f:
+	json.dump("{}\n".format("Number of words modified and in results_modified / unigram: "+str(len(results_modified))), f)
+	json.dump("{}\n".format("modifications_in_lowest_4000 / unigram: "+str(modifications_in_lowest_4000)), f)
+	json.dump("{}\n".format("Number of <UNKWN> words: "+str(unkwns_in_lowest_4000)), f)
+	json.dump("{}\n".format("Average sentence perplexity: "+str(np.mean(sentence_level_perplexity))), f)
 
 ##############################################
 

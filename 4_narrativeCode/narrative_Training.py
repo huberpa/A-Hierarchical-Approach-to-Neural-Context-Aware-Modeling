@@ -212,7 +212,7 @@ with tf.Session(config=session_config) as session:
 			training_output = session.run([updates, loss], feed_dict={enc_in:feed["encoder_inputs"], dec_in:feed["decoder_inputs"], dec_out: feed["decoder_outputs"], mask: feed["mask"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"]})
 
 		print "Saving epoch..."
-		saver.save(session, data_path+'/models/'+model_name+"/"+model_name, global_step = epoch)
+		saver.save(session, data_path+'/models/'+model_name+"/model", global_step = epoch+1)
 
 print "Training finished..."
 ##############################################

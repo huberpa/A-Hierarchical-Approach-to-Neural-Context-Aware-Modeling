@@ -56,17 +56,14 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_timesteps_max,hidden_units
 	# Encoder
 	encoder_outputs, initial_state = tf.nn.dynamic_rnn(encoder_cell, encoder_inputs, sequence_length=encoder_lengths, dtype=tf.float32, scope = "RNN_encoder")
 	
-	single_cell_dec = tf.contrib.rnn.LSTMCell(hidden_units)
-	attention_mechanism = tf.contrib.seq2seq.BahdanauAttention(hidden_units, encoder_outputs, memory_sequence_length=encoder_lengths)
-	attn_cell = tf.contrib.seq2seq.AttentionWrapper(single_cell_dec, attention_mechanism, name="Attention_mechanism")
-	attn_zero = attn_cell.zero_state(batch_size=None, dtype=tf.float32)
-	init_state = attn_zero.clone(cell_state=initial_state)
+	with variable_scope.variable_scope("Attention"):
+		single_cell_dec = tf.contrib.rnn.LSTMCell(hidden_units)
+		attention_mechanism = tf.contrib.seq2seq.BahdanauAttention(hidden_units, encoder_outputs, memory_sequence_length=encoder_lengths)
+		attn_cell = tf.contrib.seq2seq.AttentionWrapper(single_cell_dec, attention_mechanism, initial_cell_state=initial_state, name="Attention_mechanism")
 
-	cells = [attn_cell]
-	decoder_cell = tf.contrib.rnn.MultiRNNCell(cells)
-	if hidden_layers > 1:
-		decoder_cell = tf.contrib.rnn.MultiRNNCell(cells + [single_cell_dec] * (hidden_layers-1))
-
+		decoder_cell = attn_cell
+		if hidden_layers > 1:
+			decoder_cell = tf.contrib.rnn.MultiRNNCell([attn_cell] * hidden_layers)
 
 	# Decoder
 	outputs = []
@@ -75,7 +72,7 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_timesteps_max,hidden_units
 		embeddings = tf.Variable(tf.random_uniform([vocab_size, input_embedding_size], -1.0, 1.0), dtype=tf.float32)
 		decoder_inputs_embedded = tf.nn.embedding_lookup(embeddings, decoder_inputs)
 
-	lstm_output,state = tf.nn.dynamic_rnn(cell=decoder_cell, inputs=decoder_inputs_embedded, sequence_length=decoder_lengths, initial_state=init_state, dtype=tf.float32, scope = "RNN_decoder")
+	lstm_output,state = tf.nn.dynamic_rnn(cell=decoder_cell, inputs=decoder_inputs_embedded, sequence_length=decoder_lengths, dtype=tf.float32, scope = "RNN_decoder")
 	
 	with variable_scope.variable_scope("Output_layer"):
 		transp = tf.transpose(lstm_output, [1, 0, 2])
@@ -193,7 +190,7 @@ with tf.Session(config=session_config) as session:
 		with open(data_path+'/models/'+model_name+"/log.txt",'a') as f:
 			f.write("{}\n".format("epoch " + str(epoch+1) + " / " + str(epochs) + " " + str(datetime.datetime.now())))
 
-		for batch_index,_ in enumerate(encoder_input_data_batch[:5]):
+		for batch_index,_ in enumerate(encoder_input_data_batch):
 
 			print "----batch " + str(batch_index+1) + " / " + str(len(encoder_input_data_batch))
 			with open(data_path+'/models/'+model_name+"/log.txt",'a') as f:
@@ -212,7 +209,7 @@ with tf.Session(config=session_config) as session:
 			training_output = session.run([updates, loss], feed_dict={enc_in:feed["encoder_inputs"], dec_in:feed["decoder_inputs"], dec_out: feed["decoder_outputs"], mask: feed["mask"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"]})
 
 		print "Saving epoch..."
-		saver.save(session, data_path+'/models/'+model_name+"/"+model_name, global_step = epoch)
+		saver.save(session, data_path+'/models/'+model_name+"/model", global_step = epoch+1)
 
 print "Training finished..."
 ##############################################
