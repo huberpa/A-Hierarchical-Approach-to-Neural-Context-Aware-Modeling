@@ -1,1 +1,4 @@
-5_experimental/
+*.h5
+*.txt
+*.log
+*.json
