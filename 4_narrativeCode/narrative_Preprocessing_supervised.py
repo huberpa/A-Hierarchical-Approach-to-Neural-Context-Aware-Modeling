@@ -10,6 +10,7 @@ parser.add_option('--sentence_vocab', action="store", dest="sentence_vocab", hel
 parser.add_option('--sentence_log', action="store", dest="sentence_log", help="The path to the sentence embeddings logfiles(default: .)", default=".")
 parser.add_option('--supervised_text', action="store", dest="supervised_text", help="The path to the supervised text (default: .)", default=".")
 parser.add_option('--save_path', action="store", dest="save_path", help="The path to save the folders (logging, models etc.)  (default: .)", default=".")
+
 options, args = parser.parse_args()
 sentence_model = options.sentence_model
 sentence_vocab = options.sentence_vocab
@@ -118,7 +119,7 @@ for index0, talk in enumerate(talks):
 			classToken[index0][index1].append(0)
 			proofWord = word
 			if word.find("___") > -1:
-				#print "found one replaced word in sentence " + str(index1) + " word " + str(index2)
+
 				# +1 because of start token, which is manually added before 
 				classToken[index0][index1][index2+1] = 1
 				proofWord = word[word.find("___")+3:word.rfind("___")]
