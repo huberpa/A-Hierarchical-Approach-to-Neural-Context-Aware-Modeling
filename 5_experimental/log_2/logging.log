@@ -1,0 +1,65 @@
+{'layers': 1, 'start_token': '<START>', 'unknown_token': '<UNKWN>', 'starting_epoch': 1, 'embedding_dim': 300, 'batch_size': '100', 'dataset': 'PRD', 'epochs': '20', 'layer_dim': '512', 'continue_version': 0, 'save_path': './outputs_unsupervised', 'end_token': '<END>', 'vocabulary_size': '30000'}
+
+./../tedData/sets/training/original_training_texts.txt --- 2017-06-30 12:58:20 --- Iteration: 1 --- Loss: 5.82431655803
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+./../tedData/sets/training/original_training_texts.txt --- 2017-06-30 14:22:24 --- Iteration: 2 --- Loss: 4.73046037894
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+./../tedData/sets/training/original_training_texts.txt --- 2017-06-30 15:46:29 --- Iteration: 3 --- Loss: 4.42193986125
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+./../tedData/sets/training/original_training_texts.txt --- 2017-06-30 17:10:35 --- Iteration: 4 --- Loss: 4.23432549711
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+./../tedData/sets/training/original_training_texts.txt --- 2017-06-30 18:35:08 --- Iteration: 5 --- Loss: 4.08797663874
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+./../tedData/sets/training/original_training_texts.txt --- 2017-06-30 20:00:11 --- Iteration: 6 --- Loss: 3.96407968115
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+./../tedData/sets/training/original_training_texts.txt --- 2017-06-30 21:25:53 --- Iteration: 7 --- Loss: 3.85515859308
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+./../tedData/sets/training/original_training_texts.txt --- 2017-06-30 22:51:53 --- Iteration: 8 --- Loss: 3.75849422381
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+./../tedData/sets/training/original_training_texts.txt --- 2017-07-01 00:17:49 --- Iteration: 9 --- Loss: 3.67161976679
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+./../tedData/sets/training/original_training_texts.txt --- 2017-07-01 01:43:49 --- Iteration: 10 --- Loss: 3.59225361074
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+./../tedData/sets/training/original_training_texts.txt --- 2017-07-01 03:10:09 --- Iteration: 11 --- Loss: 3.52014361796
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+./../tedData/sets/training/original_training_texts.txt --- 2017-07-01 04:36:51 --- Iteration: 12 --- Loss: 3.45269784513
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+./../tedData/sets/training/original_training_texts.txt --- 2017-07-01 06:03:56 --- Iteration: 13 --- Loss: 3.38966141113
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+./../tedData/sets/training/original_training_texts.txt --- 2017-07-01 07:31:25 --- Iteration: 14 --- Loss: 3.33036030428
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+./../tedData/sets/training/original_training_texts.txt --- 2017-07-01 08:59:16 --- Iteration: 15 --- Loss: 3.27465252069
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+./../tedData/sets/training/original_training_texts.txt --- 2017-07-01 10:27:30 --- Iteration: 16 --- Loss: 3.22108781384
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
