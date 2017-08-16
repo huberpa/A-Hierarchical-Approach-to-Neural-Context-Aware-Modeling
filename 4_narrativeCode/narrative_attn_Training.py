@@ -91,6 +91,11 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_timesteps_max,hidden_units
 		loss = tf.contrib.seq2seq.sequence_loss(targets=decoder_outputs, logits=forward, weights=masking, average_across_timesteps=False)
 		updates = tf.train.AdamOptimizer().minimize(loss)
 
+	# Check Accuracy
+	with variable_scope.variable_scope("Accuracy"):
+		correct_prediction = tf.equal(tf.argmax(forward, 1), decoder_outputs)
+		accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
 	# Store variables for further training or execution
 	tf.add_to_collection('variables_to_store', forward)
 	tf.add_to_collection('variables_to_store', updates)
@@ -102,7 +107,7 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_timesteps_max,hidden_units
 	tf.add_to_collection('variables_to_store', encoder_lengths)
 	tf.add_to_collection('variables_to_store', decoder_lengths)
 
-	return (forward, updates, loss, encoder_inputs, decoder_inputs, decoder_outputs, masking, encoder_lengths, decoder_lengths)
+	return (forward, updates, loss, encoder_inputs, decoder_inputs, decoder_outputs, masking, encoder_lengths, decoder_lengths, accuracy)
 
 def softmax(x):
     e_x = np.exp(x - np.max(x))
@@ -160,7 +165,7 @@ decoder_mask_batch = createBatch(decoder_mask, batch_size)
 
 # Create computational graph
 print "Create computational graph..."
-network, updates, loss, enc_in, dec_in, dec_out, mask, enc_len, dec_len = seq2seq(enc_input_dimension=enc_input_dimension, enc_timesteps_max=enc_timesteps_max, dec_timesteps_max=dec_timesteps_max, hidden_units=hidden_dimensions, hidden_layers=nb_hidden_layers, input_embedding_size=embedding_size, vocab_size=vocab_size)
+network, updates, loss, enc_in, dec_in, dec_out, mask, enc_len, dec_len, accuracy = seq2seq(enc_input_dimension=enc_input_dimension, enc_timesteps_max=enc_timesteps_max, dec_timesteps_max=dec_timesteps_max, hidden_units=hidden_dimensions, hidden_layers=nb_hidden_layers, input_embedding_size=embedding_size, vocab_size=vocab_size)
 
 # Launch the graph
 print "Launch the graph..."
@@ -204,7 +209,9 @@ with tf.Session(config=session_config) as session:
 			feed["decoder_outputs"] = decoder_output_data_batch[batch_index]
 			feed["mask"] = decoder_mask_batch[batch_index]
 
-			print feed
+			if batch_index % 100 == 0:
+				[train_accuracy] = sess.run([accuracy], feed_dict={enc_in:feed["encoder_inputs"], dec_in:feed["decoder_inputs"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"]})
+				print "Training " + str(batch_index) + " in Epoch " + str(epoch) + " Accuracy is: " + str(train_accuracy)
 
 			training_output = session.run([updates, loss], feed_dict={enc_in:feed["encoder_inputs"], dec_in:feed["decoder_inputs"], dec_out: feed["decoder_outputs"], mask: feed["mask"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"]})
 

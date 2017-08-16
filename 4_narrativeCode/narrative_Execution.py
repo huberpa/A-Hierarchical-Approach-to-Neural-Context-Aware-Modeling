@@ -129,10 +129,17 @@ with tf.Session(config=session_config) as session:
 					checkedword = original_word[original_word.find("___")+3:original_word.rfind("___")]
 
 				count_unigram = 1
-				try:
-					count_unigram = unigrams[checkedword]
-				except Exception:
-					unigrams_not_found += 1
+				#try:
+				print "CheckedWord: " + checkedword
+				print unigrams
+					#count_unigram = unigrams[checkedword]
+				#except Exception:
+			#		print "Cannot find unigram for: " + checkedword
+			#		unigrams_not_found += 1
+
+				print ""
+				print "---"
+				print ""
 
 				word_index = word_to_index[checkedword] if checkedword in word_to_index else word_to_index["<UNKWN>"]
 				if original_word != "<PAD>":
@@ -175,8 +182,8 @@ for idx, element in enumerate(results):
 			modifications_in_lowest_4000 += 1
 
 with open(data_path+"/tests/"+save_file+"_results.txt",'a') as f:
-	json.dump("{}\n".format("Number of words modified and in results_modified: "+str(len(results_modified))), f)
-	json.dump("{}\n".format("modifications_in_lowest_4000: "+str(modifications_in_lowest_4000)), f)
+	f.write("{}\n".format("Number of words modified and in results_modified: "+str(len(results_modified))))
+	f.write("{}\n".format("modifications_in_lowest_4000: "+str(modifications_in_lowest_4000)))
 
 results.sort(key=lambda row: row[1])
 results_modified = []
@@ -190,11 +197,11 @@ for idx, element in enumerate(results):
 		if idx <= 4000:
 			modifications_in_lowest_4000 += 1
 
-with open(data_path+"/tests/"+save_file+"_results.txt",'a') as f:
-	json.dump("{}\n".format("Number of words modified and in results_modified / unigram: "+str(len(results_modified))), f)
-	json.dump("{}\n".format("modifications_in_lowest_4000 / unigram: "+str(modifications_in_lowest_4000)), f)
-	json.dump("{}\n".format("Number of <UNKWN> words: "+str(unkwns_in_lowest_4000)), f)
-	json.dump("{}\n".format("Average sentence perplexity: "+str(np.mean(sentence_level_perplexity))), f)
+with open(data_path+"/tests/"+save_file+"_results.txt", "a") as f:	
+	f.write("{}\n".format("Number of words modified and in results_modified / unigram: "+str(len(results_modified))))
+	f.write("{}\n".format("modifications_in_lowest_4000 / unigram: "+str(modifications_in_lowest_4000)))
+	f.write("{}\n".format("Number of <UNKWN> words: "+str(unkwns_in_lowest_4000)))
+	f.write("{}\n".format("Average sentence perplexity: "+str(np.mean(perplexity_results))))
 
 ##############################################
 

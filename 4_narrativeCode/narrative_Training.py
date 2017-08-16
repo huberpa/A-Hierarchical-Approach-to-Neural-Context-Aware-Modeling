@@ -83,7 +83,7 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_timesteps_max,hidden_units
 	# Training
 	with variable_scope.variable_scope("Backpropagation"):
 		loss = tf.contrib.seq2seq.sequence_loss(targets=decoder_outputs, logits=forward, weights=masking, average_across_timesteps=False)
-		updates = tf.train.AdamOptimizer().minimize(loss)
+		updates = tf.train.AdamOptimizer(1e-4).minimize(loss)
 
 	# Store variables for further training or execution
 	tf.add_to_collection('variables_to_store', forward)
