@@ -8,7 +8,7 @@ parser.add_option('--sentence_max_length', action="store", dest="sentence_max_le
 parser.add_option('--sentence_model', action="store", dest="sentence_model", help="The path to the sentence embeddings model(default: .)", default=".")
 parser.add_option('--sentence_vocab', action="store", dest="sentence_vocab", help="The path to the sentence embeddings vocabulary(default: .)", default=".")
 parser.add_option('--sentence_log', action="store", dest="sentence_log", help="The path to the sentence embeddings logfiles(default: .)", default=".")
-parser.add_option('--supervised_text', action="store", dest="supervised_text", help="The path to the supervised text (default: .)", default=".")
+parser.add_option('--corpus', action="store", dest="corpus", help="The corpus that should be used (PRD or DEV)  (default: PRD)", default="PRD")
 parser.add_option('--save_path', action="store", dest="save_path", help="The path to save the folders (logging, models etc.)  (default: .)", default=".")
 
 options, args = parser.parse_args()
@@ -18,7 +18,12 @@ sentence_log = options.sentence_log
 save_path = options.save_path
 max_sentence_length = int(options.sentence_max_length)
 max_sentence_forecast = int(options.sentence_forecast)
-supervised_text = options.supervised_text
+corpus = options.corpus
+if corpus == "DEV":
+    supervised_text = "./../tedData/sets/development/talkseperated_indicated_development_texts.txt"
+if corpus == "PRD":
+    supervised_text = "./../tedData/sets/training/talkseperated_indicated_training_texts.txt"
+    
 ##############################################
 
 # Imports

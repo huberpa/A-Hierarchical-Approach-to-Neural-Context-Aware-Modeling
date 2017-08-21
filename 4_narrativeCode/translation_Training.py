@@ -38,11 +38,13 @@ from tensorflow.python.ops import variable_scope
 
 # Helper functions
 ##############################################
-def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_timesteps_max,hidden_units,hidden_layers,embedding_size):
+def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_timesteps_max,hidden_units,hidden_layers,embedding_size, start_of_sequence_id, end_of_sequence_id):
 
 	# Inputs / Outputs / Cells
-	encoder_inputs = tf.placeholder(dtypes.float32, shape=[None, enc_timesteps_max, enc_input_dimension], name="encoder_inputs")
+	encoder_inputs = tf.placeholder(dtypes.float32, shape=[None, enc_timesteps_max], name="encoder_inputs")
 	encoder_lengths = tf.placeholder(dtypes.int32, shape=[None], name="encoder_lengths")
+	decoder_inputs = tf.placeholder(dtypes.int64, shape=[None, dec_timesteps_max], name="decoder_inputs")
+	decoder_lengths = tf.placeholder(dtypes.int32, shape=[None], name="decoder_lengths")
 	decoder_outputs = tf.placeholder(dtypes.int64, shape=[None, dec_timesteps_max], name="decoder_outputs")
 	masking = tf.placeholder(dtypes.float32, shape=[None, dec_timesteps_max], name="loss_masking")
 
@@ -56,41 +58,46 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 
 	# Seq2Seq		
 	# Encoder
-	_, initial_state = tf.nn.dynamic_rnn(encoder_cell, encoder_inputs, sequence_length=encoder_lengths, dtype=tf.float32, scope = "RNN_encoder")
+	with variable_scope.variable_scope("Encoder_embedding_layer"):
+		embeddings_enc = tf.Variable(tf.random_uniform([enc_input_dimension, embedding_size], -1.0, 1.0), dtype=tf.float32)
+		encoder_inputs_embedded = tf.nn.embedding_lookup(embeddings_enc, encoder_inputs)
+
+	_, initial_state = tf.nn.dynamic_rnn(encoder_cell, encoder_inputs_embedded, sequence_length=encoder_lengths, dtype=tf.float32, scope = "RNN_encoder")
 
 	# Decoder
-	outputs = []
+	with variable_scope.variable_scope("Decoder_embedding_layer"):
+		embeddings_dec = tf.Variable(tf.random_uniform([dec_input_dimension, embedding_size], -1.0, 1.0), dtype=tf.float32)
+		decoder_inputs_embedded = tf.nn.embedding_lookup(embeddings_dec, decoder_inputs)
 
-	with variable_scope.variable_scope("Embedding_layer"):
-		embeddings = tf.Variable(tf.random_uniform([dec_input_dimension, input_embedding_size], -1.0, 1.0), dtype=tf.float32)
-		decoder_inputs_embedded = tf.nn.embedding_lookup(embeddings, decoder_inputs)
-
-	lstm_output,state = tf.nn.dynamic_rnn(decoder_cell, decoder_inputs_embedded, sequence_length=decoder_lengths, initial_state=initial_state, scope = "RNN_decoder")
+	# For training
+	decoder_train = tf.contrib.seq2seq.simple_decoder_fn_train(initial_state)
+	decoder_output_train, _, _ = tf.contrib.seq2seq.dynamic_rnn_decoder(cell=decoder_cell, decoder_fn=decoder_train, inputs=decoder_inputs_embedded, sequence_length=decoder_lengths, scope = "RNN_decoder")
 	
+	# For generating
+	decoder_infer = tf.contrib.seq2seq.simple_decoder_fn_inference(encoder_state=initial_state, embeddings=embeddings_dec, start_of_sequence_id=start_of_sequence_id, end_of_sequence_id=end_of_sequence_id, maximum_length= dec_timesteps_max, num_decoder_symbols=dec_input_dimension)
+    inference_output, _, _ = tf.contrib.seq2seq.dynamic_rnn_decoder(cell=decoder_cell, decoder_fn=decoder_infer, scope = "RNN_decoder")
+
 	with variable_scope.variable_scope("Output_layer"):
-		transp = tf.transpose(lstm_output, [1, 0, 2])
-		lstm_output_unpacked = tf.unstack(transp)
-		for index, item in enumerate(lstm_output_unpacked):
+		outputs = []
+		transp = tf.transpose(decoder_output_train, [1, 0, 2])
+		decoder_output_unpacked = tf.unstack(transp)
+		for index, item in enumerate(decoder_output_unpacked):
 			if index == 0:
 				logits = tf.layers.dense(inputs=item, units=dec_input_dimension, name="output_dense")
 			if index > 0:
 				logits = tf.layers.dense(inputs=item, units=dec_input_dimension, name="output_dense", reuse=True)
-
-			if (index+1) < len(lstm_output_unpacked):
-				lstm_output_unpacked[index+1]
-				logits
-
 			outputs.append(logits)
+
 		tensor_output = tf.stack(values=outputs, axis=0)
-		forward = tf.transpose(tensor_output, [1, 0, 2])
+		forward_train = tf.transpose(tensor_output, [1, 0, 2])
 
 	# Training
 	with variable_scope.variable_scope("Backpropagation"):
-		loss = tf.contrib.seq2seq.sequence_loss(targets=decoder_outputs, logits=forward, weights=masking, average_across_timesteps=False)
-		updates = tf.train.AdamOptimizer().minimize(loss)
+		loss = tf.contrib.seq2seq.sequence_loss(targets=decoder_outputs, logits=forward_train, weights=masking)
+		updates = tf.train.AdamOptimizer(1e-4).minimize(loss)
 
 	# Store variables for further training or execution
-	tf.add_to_collection('variables_to_store', forward)
+	tf.add_to_collection('variables_to_store', forward_train)
 	tf.add_to_collection('variables_to_store', updates)
 	tf.add_to_collection('variables_to_store', loss)
 	tf.add_to_collection('variables_to_store', encoder_inputs)
@@ -99,8 +106,9 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 	tf.add_to_collection('variables_to_store', masking)
 	tf.add_to_collection('variables_to_store', encoder_lengths)
 	tf.add_to_collection('variables_to_store', decoder_lengths)
+	tf.add_to_collection('variables_to_store', inference_output)
 
-	return (forward, updates, loss, encoder_inputs, decoder_inputs, decoder_outputs, masking, encoder_lengths, decoder_lengths)
+	return (forward_train, updates, loss, encoder_inputs, decoder_inputs, decoder_outputs, masking, encoder_lengths, decoder_lengths, inference_output)
 
 def softmax(x):
     e_x = np.exp(x - np.max(x))
@@ -157,7 +165,7 @@ decoder_mask_batch = createBatch(decoder_mask, batch_size)
 
 # Create computational graph
 print "Create computational graph..."
-network, updates, loss, enc_in, dec_in, dec_out, mask, enc_len, dec_len = seq2seq(enc_input_dimension=enc_input_dimension, enc_timesteps_max=enc_timesteps_max, dec_timesteps_max=dec_timesteps_max, hidden_units=hidden_dimensions, hidden_layers=nb_hidden_layers, input_embedding_size=embedding_size, vocab_size=vocab_size)
+network_train, updates, loss, enc_in, dec_in, dec_out, mask, enc_len, dec_len, inf_out = seq2seq(enc_input_dimension=enc_input_dimension, enc_timesteps_max=enc_timesteps_max, dec_timesteps_max=dec_timesteps_max, hidden_units=hidden_dimensions, hidden_layers=nb_hidden_layers, embedding_size=embedding_size, dec_input_dimension=dec_input_dimension, start_of_sequence_id=, end_of_sequence_id=)
 
 # Launch the graph
 print "Launch the graph..."

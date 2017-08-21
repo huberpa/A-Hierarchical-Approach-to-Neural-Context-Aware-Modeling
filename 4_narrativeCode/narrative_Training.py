@@ -48,12 +48,12 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_timesteps_max,hidden_units
 	masking = tf.placeholder(dtypes.float32, shape=[None, dec_timesteps_max], name="loss_masking")
 
 	# Cells
-	encoder_cell = single_cell_enc = tf.contrib.rnn.LSTMCell(hidden_units)
+	encoder_cell = tf.contrib.rnn.LSTMCell(hidden_units)
 	if hidden_layers > 1:
-		encoder_cell = tf.contrib.rnn.MultiRNNCell([single_cell_enc] * hidden_layers)
-	decoder_cell = single_cell_dec = tf.contrib.rnn.LSTMCell(hidden_units)
+		encoder_cell = tf.contrib.rnn.MultiRNNCell([tf.contrib.rnn.LSTMCell(hidden_units) for _ in range(hidden_layers)])
+	decoder_cell = tf.contrib.rnn.LSTMCell(hidden_units)
 	if hidden_layers > 1:
-		decoder_cell = tf.contrib.rnn.MultiRNNCell([single_cell_dec] * hidden_layers)
+		decoder_cell = tf.contrib.rnn.MultiRNNCell([tf.contrib.rnn.LSTMCell(hidden_units) for _ in range(hidden_layers)])
 
 	# Seq2Seq		
 	# Encoder
