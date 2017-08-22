@@ -336,37 +336,37 @@ print "Mean Perplexity of all Sequences: " + str(np.mean(sentence_level_perplexi
 print ""
 
 with open("./perplexity_unsupervised.txt", "a") as f:
-	content = fileName + ", Mean Probability of correct Words, " + str(mean_p_o)
-	content += ", Mean Probability of modified Words, " + str(mean_p_m)
-	content += ", Mean Probability of correct Words divided by unigram probability, " + str(mean_p_o_u)
-	content += ", Mean Probability of modified Words divided by unigram probability, " + str(mean_p_m_u)
-	content += ", Mean Position of the correct word compared to the other alternatives is, " + str(mean_position_o)
-	content += ", Mean Position of the modified word compared to the other alternatives is, " + str(mean_position_m)
+	content = fileName
+#	content += ", Mean Probability of modified Words, " + str(mean_p_m)
+#	content += ", Mean Probability of correct Words divided by unigram probability, " + str(mean_p_o_u)
+#	content += ", Mean Probability of modified Words divided by unigram probability, " + str(mean_p_m_u)
+#	content += ", Mean Position of the correct word compared to the other alternatives is, " + str(mean_position_o)
+#	content += ", Mean Position of the modified word compared to the other alternatives is, " + str(mean_position_m)
 	content += ", Mean Perplexity of all Sequences, " + str(np.mean(sentence_level_perplexity))
-	content += ", Modified words within most unlikely 100 words on dataset, " + str(modifications_in_lowest_100)
-	content += ", Modified words within most unlikely 500 words on dataset, " + str(modifications_in_lowest_500)
-	content += ", Modified words within most unlikely 1000 words on dataset, " + str(modifications_in_lowest_1000)
+#	content += ", Modified words within most unlikely 100 words on dataset, " + str(modifications_in_lowest_100)
+#	content += ", Modified words within most unlikely 500 words on dataset, " + str(modifications_in_lowest_500)
+#	content += ", Modified words within most unlikely 1000 words on dataset, " + str(modifications_in_lowest_1000)
 	content += ", Modified words within most unlikely 4000 words on dataset, " + str(modifications_in_lowest_4000)
-	content += ", Modified words within most unlikely 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "), " + str(modifications_in_lowest_10_percent)
-	content += ", Modified words within most unlikely 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "), " + str(modifications_in_lowest_20_percent)
-	content += ", Modified words within most unlikely 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "), " + str(modifications_in_lowest_30_percent)
-	content += ", Modified words/unigram probability within most unlikely 100 words on dataset, " + str(unigram_modifications_in_lowest_100)
-	content += ", Modified words/unigram probability within most unlikely 500 words on dataset, " + str(unigram_modifications_in_lowest_500)
-	content += ", Modified words/unigram probability within most unlikely 1000 words on dataset, " + str(unigram_modifications_in_lowest_1000)
+#	content += ", Modified words within most unlikely 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "), " + str(modifications_in_lowest_10_percent)
+#	content += ", Modified words within most unlikely 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "), " + str(modifications_in_lowest_20_percent)
+#	content += ", Modified words within most unlikely 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "), " + str(modifications_in_lowest_30_percent)
+#	content += ", Modified words/unigram probability within most unlikely 100 words on dataset, " + str(unigram_modifications_in_lowest_100)
+#	content += ", Modified words/unigram probability within most unlikely 500 words on dataset, " + str(unigram_modifications_in_lowest_500)
+#	content += ", Modified words/unigram probability within most unlikely 1000 words on dataset, " + str(unigram_modifications_in_lowest_1000)
 	content += ", Modified words/unigram probability within most unlikely 4000 words on dataset, " + str(unigram_modifications_in_lowest_4000)
-	content += ", Modified words/unigram probability within most unlikely 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "), " + str(unigram_modifications_in_lowest_10_percent)
-	content += ", Modified words/unigram probability within most unlikely 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "), " + str(unigram_modifications_in_lowest_20_percent)
-	content += ", Modified words/unigram probability within most unlikely 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "), " + str(unigram_modifications_in_lowest_30_percent)
+#	content += ", Modified words/unigram probability within most unlikely 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "), " + str(unigram_modifications_in_lowest_10_percent)
+#	content += ", Modified words/unigram probability within most unlikely 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "), " + str(unigram_modifications_in_lowest_20_percent)
+#	content += ", Modified words/unigram probability within most unlikely 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "), " + str(unigram_modifications_in_lowest_30_percent)
 	#content += ", All modified words with positions: "
 	#for element in all_positions_modified:
 	#	content += ", " + str(element)
 
-	content += ", Distribution of correct word relative to other words"
-	for element in classCount_o:
-		content += ", " + str(element)
-	content += ", Distribution of modified word relative to other words"
-	for element in classCount_m:
-		content += ", " + str(element)
+#	content += ", Distribution of correct word relative to other words"
+#	for element in classCount_o:
+#		content += ", " + str(element)
+#	content += ", Distribution of modified word relative to other words"
+#	for element in classCount_m:
+#		content += ", " + str(element)
 
 	f.write("{}\n".format(content))
 

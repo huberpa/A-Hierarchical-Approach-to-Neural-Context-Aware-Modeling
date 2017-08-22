@@ -176,12 +176,12 @@ with tf.Session() as session:
 		f.write("{}\n".format(""))
 		f.write("{}\n".format("Training started with: " + str(options)))
 
-	for epoch in range(epochs):
+	for epoch in range(1):
 		print "epoch " + str(epoch+1) + " / " + str(epochs)
 		with open(data_path+'/models/'+model_name+"/log.txt",'a') as f:
 			f.write("{}\n".format("epoch " + str(epoch+1) + " / " + str(epochs) + " " + str(datetime.datetime.now())))
 
-		for batch_index,_ in enumerate(encoder_input_data_batch):
+		for batch_index,_ in enumerate(encoder_input_data_batch[:2]):
 
 			print "----batch " + str(batch_index+1) + " / " + str(len(encoder_input_data_batch))
 			with open(data_path+'/models/'+model_name+"/log.txt",'a') as f:
@@ -195,39 +195,14 @@ with tf.Session() as session:
 			feed["decoder_outputs"] = decoder_output_data_batch[batch_index]
 			feed["mask"] = decoder_mask_batch[batch_index]
 
-			
-			shape1 = copy.deepcopy(feed["encoder_inputs"])
-			shape2 = copy.deepcopy(feed["decoder_inputs"])
-			shape3 = copy.deepcopy(feed["decoder_outputs"])
-			shape4 = copy.deepcopy(feed["mask"])
-
-
-			if len(np.asarray(shape1).shape)<3:
-				print ("*"*100)
-				print "encoder_inputs"
-				print np.asarray(shape1).shape
-
-			if len(np.asarray(shape2).shape)<2:
-				print ("*"*100)
-				print "decoder_inputs"
-				print np.asarray(shape2).shape
-
-			if len(np.asarray(shape3).shape)<2:
-				print ("*"*100)
-				print "decoder_outputs"
-				print np.asarray(shape3).shape
-				print feed["decoder_outputs"]
-
-			if len(np.asarray(shape4).shape)<2:
-				print ("*"*100)
-				print "mask"
-				print np.asarray(shape4).shape
-
 			training_output = session.run([updates, loss], feed_dict={enc_in:feed["encoder_inputs"], dec_in:feed["decoder_inputs"], dec_out: feed["decoder_outputs"], mask: feed["mask"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"]})
-
 			print training_output
-		print "Saving epoch..."
-		saver.save(session, data_path+'/models/'+model_name+"/model", global_step = epoch+1)
+
+			result_raw = session.run(network, feed_dict={enc_in:feed["encoder_inputs"], dec_in:feed["decoder_inputs"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"]})
+			print result_raw
+
+		#print "Saving epoch..."
+		#saver.save(session, data_path+'/models/'+model_name+"/model", global_step = epoch+1)
 
 print "Training finished..."
 ##############################################
