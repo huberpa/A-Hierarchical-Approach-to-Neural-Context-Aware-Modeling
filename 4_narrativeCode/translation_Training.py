@@ -21,21 +21,22 @@ data_path = options.data_path
 model_name = options.name
 ##############################################
 
-
-
 # Imports
 ##############################################
-import tensorflow as tf 
+#import tensorflow as tf 
 import numpy as np
+from xml.dom.minidom import parse, parseString
 import json
 import os
 import datetime
-from tensorflow.python.framework import dtypes
-from tensorflow.python.ops import variable_scope
+import sys
+import nltk
+reload(sys)  
+sys.setdefaultencoding('utf8')
+#from tensorflow.python.framework import dtypes
+#from tensorflow.python.ops import variable_scope
 ##############################################
-
-
-
+'''
 # Helper functions
 ##############################################
 def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_timesteps_max,hidden_units,hidden_layers,embedding_size, start_of_sequence_id, end_of_sequence_id):
@@ -122,30 +123,60 @@ def createBatch(listing, batchSize):
 			batchList.append(listing[index:(index + batchSize)])
 	return batchList
 ##############################################
-
+'''
 
 
 # Main
 ##############################################
 
 # Load files
-print "Reading network input data..."
-with open (data_path+"/encoder_input_data.txt", 'r') as f:
-    encoder_input_data = json.load(f)
-with open (data_path+"/decoder_input_data.txt", 'r') as f:
-    decoder_input_data = json.load(f)
-with open (data_path+"/decoder_output_data.txt", 'r') as f:
-    decoder_output_data = json.load(f)
-with open (data_path+"/encoder_input_length.txt", 'r') as f:
-    encoder_input_length = json.load(f)
-with open (data_path+"/decoder_input_length.txt", 'r') as f:
-    decoder_input_length = json.load(f)
-with open (data_path+"/decoder_mask.txt", 'r') as f:
-    decoder_mask = json.load(f)
-with open (data_path+"/index_to_word.txt", 'r') as f:
-    index_to_word = json.load(f)
-with open (data_path+"/word_to_index.txt", 'r') as f:
-    word_to_index = json.load(f)
+english_talks = []
+english_words = []
+english_path  = open(data_path+"/train.tags.en-de.en", "r")
+english_text = english_path.read()
+englishFile = parseString(english_text)
+english_documents=englishFile.getElementsByTagName('doc')
+for document in english_documents:
+	content=document.getElementsByTagName('content')
+	for talk in content:
+		tokens = []
+		for index, sentence in enumerate(nltk.sent_tokenize(talk.childNodes[0].nodeValue)): 
+			tokens.append(nltk.word_tokenize(sentence))
+		english_talks = english_talks + tokens
+		english_words = english_words + nltk.word_tokenize(talk.childNodes[0].nodeValue)
+
+german_talks = []
+german_words = []
+german_path  = open(data_path+"/train.tags.en-de.de", "r")
+german_text = german_path.read()
+germanFile = parseString(german_text)
+german_documents=germanFile.getElementsByTagName('doc')
+for document in german_documents:
+	content=document.getElementsByTagName('content')
+	for talk in content:
+		for index, sentence in enumerate(nltk.sent_tokenize(talk.childNodes[0].nodeValue)): 
+			tokens.append(nltk.word_tokenize(sentence))
+		german_talks = german_talks + tokens		
+		german_words = german_words + nltk.word_tokenize(talk.childNodes[0].nodeValue)
+
+english_words = [word.lower() for word in english_words]
+german_words = [word.lower() for word in german_words]
+english_talks = [[word.lower() for word in sentence] for sentence in english_talks]
+german_talks = [[word.lower() for word in sentence] for sentence in german_talks]
+
+print len(english_words)
+print len(german_words)
+print np.asarray(english_talks).shape
+print np.asarray(german_talks).shape
+
+'''
+print "Creating vocabulary..."
+allVocab = [word[0] for word in Counter(words).most_common()]
+vocab = ["<PAD>"]+allVocab[:vocabulary_size]
+vocab.append(unknown_token)
+vocab.append(start_token)
+vocab.append(end_token)
+
 
 # Retrieve input variables from files
 print "Retrieve input variables from files..."
@@ -228,5 +259,5 @@ with tf.Session(config=session_config) as session:
 
 print "Training finished..."
 ##############################################
-
+'''
 # END
