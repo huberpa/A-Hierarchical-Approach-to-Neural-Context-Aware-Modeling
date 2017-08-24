@@ -32,7 +32,7 @@ import datetime
 import sys
 import nltk
 reload(sys)  
-sys.setdefaultencoding('utf8')
+sys.setdefaultencoding('utf-8')
 #from tensorflow.python.framework import dtypes
 #from tensorflow.python.ops import variable_scope
 ##############################################
@@ -139,11 +139,16 @@ english_documents=englishFile.getElementsByTagName('doc')
 for document in english_documents:
 	content=document.getElementsByTagName('content')
 	for talk in content:
+		node_value = talk.childNodes[0].nodeValue.replace(';', '.')
+		splitted_talk = node_value.split('\n')
 		tokens = []
-		for index, sentence in enumerate(nltk.sent_tokenize(talk.childNodes[0].nodeValue)): 
-			tokens.append(nltk.word_tokenize(sentence))
+		for line in splitted_talk:
+			if len(line) > 1:
+				tokens.append([])
+				for index, sentence in enumerate(nltk.sent_tokenize(line)): 
+					tokens[-1].append(nltk.word_tokenize(sentence))
 		english_talks = english_talks + tokens
-		english_words = english_words + nltk.word_tokenize(talk.childNodes[0].nodeValue)
+		#english_words = english_words + nltk.word_tokenize(node_value)
 
 german_talks = []
 german_words = []
@@ -154,20 +159,29 @@ german_documents=germanFile.getElementsByTagName('doc')
 for document in german_documents:
 	content=document.getElementsByTagName('content')
 	for talk in content:
-		for index, sentence in enumerate(nltk.sent_tokenize(talk.childNodes[0].nodeValue)): 
-			tokens.append(nltk.word_tokenize(sentence))
+		node_value = talk.childNodes[0].nodeValue.replace(';', '.')
+		splitted_talk = node_value.split('\n')
+		tokens = []
+		for line in splitted_talk:
+			if len(line) > 1:
+				tokens.append([])
+				for index, sentence in enumerate(nltk.sent_tokenize(line)): 
+					tokens[-1].append(nltk.word_tokenize(sentence))
 		german_talks = german_talks + tokens		
-		german_words = german_words + nltk.word_tokenize(talk.childNodes[0].nodeValue)
+		#german_words = german_words + nltk.word_tokenize(node_value)
 
-english_words = [word.lower() for word in english_words]
-german_words = [word.lower() for word in german_words]
-english_talks = [[word.lower() for word in sentence] for sentence in english_talks]
-german_talks = [[word.lower() for word in sentence] for sentence in german_talks]
+#english_words = [word.lower() for word in english_words]
+#german_words = [word.lower() for word in german_words]
+#english_talks = [[word.lower() for word in sentence] for sentence in english_talks]
+#german_talks = [[word.lower() for word in sentence] for sentence in german_talks]
 
-print len(english_words)
-print len(german_words)
-print np.asarray(english_talks).shape
-print np.asarray(german_talks).shape
+for index, talk in enumerate(english_talks):
+	print len(talk)
+	print len(german_talks[index])
+	print ('*'*50)
+	print ""
+
+#PROBLEM::: Satze nicht sync!!!!!
 
 '''
 print "Creating vocabulary..."

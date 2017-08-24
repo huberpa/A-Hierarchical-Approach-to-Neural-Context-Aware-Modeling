@@ -13,7 +13,7 @@ parser.add_option('-f', '--file', action="store", dest="file", help="relative pa
 options, args = parser.parse_args()
 print options
 input_path = options.input
-training_path = options.unigram
+unigram = options.unigram
 model_path = options.model
 vocab_path = options.vocab
 fileName = options.file
@@ -57,6 +57,16 @@ with open(vocab_path + "/word_to_index.json") as f:
 index_to_word = []
 with open(vocab_path + "/index_to_word.json") as f:    
 	index_to_word = json.load(f)
+
+# Unigram probabilities from training
+unigram_path  = open(unigram, "r")
+unigram_text = unigram_path.read().decode('utf8')
+words = nltk.word_tokenize(unigram_text)
+words = [word.lower() for word in words]
+wordcount = Counter(words)
+wordUnigram = sorted(wordcount.items(), key=lambda item: item[1])
+
+unigrams = dict((word, count) for word, count in wordUnigram)
 
 # Compute the perplexity for each sentence
 words_not_in_vocab = 0
@@ -115,7 +125,15 @@ for index, sentence in enumerate(tokens):
 	for index, word in enumerate(prediction):
 		if word > 0.5:
 			nb_words_high_prob += 1
-		all_words_probability_with_modified.append([word, 0, "tbd", index_to_word[str(input_perplexity[index])]])
+		if index_to_word[str(input_perplexity[index])] != "<UNKWN>":
+
+			count_o = 1
+			try:
+				count_o = unigrams[index_to_word[str(input_perplexity[index])]]
+			except Exception:
+				count_o = count_o
+
+			all_words_probability_with_modified.append([word, 0, (word*len(words))/(count_o), index_to_word[str(input_perplexity[index])]])
 
 		#check if word got replaced and if so, save in special array
 		for change in changes:
@@ -213,40 +231,40 @@ print "Words not in vocabulary: " + str(words_not_in_vocab)
 #print "System Precision: " + str(precision)
 #print "System Recall: " + str(recall)
 #print "System F1-Score: " + str(2*((precision*recall)/(precision+recall)))
-print "Modified words within highest 100 words on dataset: " + str(modifications_in_highest_100)
-print "Modified words within highest 500 words on dataset: " + str(modifications_in_highest_500)
-print "Modified words within highest 1000 words on dataset: " + str(modifications_in_highest_1000)
+#print "Modified words within highest 100 words on dataset: " + str(modifications_in_highest_100)
+#print "Modified words within highest 500 words on dataset: " + str(modifications_in_highest_500)
+#print "Modified words within highest 1000 words on dataset: " + str(modifications_in_highest_1000)
 print "Modified words within highest 4000 words on dataset: " + str(modifications_in_highest_4000)
-print "Modified words within highest 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "): " + str(modifications_in_highest_10_percent)
-print "Modified words within highest 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "): " + str(modifications_in_highest_20_percent)
-print "Modified words within highest 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "): " + str(modifications_in_highest_30_percent)
-print "Modified words/unigram probability within highest 100 words on dataset: " + str(unigram_modifications_in_highest_100)
-print "Modified words/unigram probability within highest 500 words on dataset: " + str(unigram_modifications_in_highest_500)
-print "Modified words/unigram probability within highest 1000 words on dataset: " + str(unigram_modifications_in_highest_1000)
+#print "Modified words within highest 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "): " + str(modifications_in_highest_10_percent)
+#print "Modified words within highest 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "): " + str(modifications_in_highest_20_percent)
+#print "Modified words within highest 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "): " + str(modifications_in_highest_30_percent)
+#print "Modified words/unigram probability within highest 100 words on dataset: " + str(unigram_modifications_in_highest_100)
+#print "Modified words/unigram probability within highest 500 words on dataset: " + str(unigram_modifications_in_highest_500)
+#print "Modified words/unigram probability within highest 1000 words on dataset: " + str(unigram_modifications_in_highest_1000)
 print "Modified words/unigram probability within highest 4000 words on dataset: " + str(unigram_modifications_in_highest_4000)
-print "Modified words/unigram probability within highest 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "): " + str(unigram_modifications_in_highest_10_percent)
-print "Modified words/unigram probability within highest 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "): " + str(unigram_modifications_in_highest_20_percent)
-print "Modified words/unigram probability within highest 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "): " + str(unigram_modifications_in_highest_30_percent)
+#print "Modified words/unigram probability within highest 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "): " + str(unigram_modifications_in_highest_10_percent)
+#print "Modified words/unigram probability within highest 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "): " + str(unigram_modifications_in_highest_20_percent)
+#print "Modified words/unigram probability within highest 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "): " + str(unigram_modifications_in_highest_30_percent)
 
 with open("./perplexity_supervised.txt", "a") as f:
 	content = fileName
 	#content += "System Precision: " + str(precision)
 	#content += "System Recall: " + str(recall)
 	#content += "System F1-Score: " + str(2*((precision*recall)/(precision+recall)))
-	content += ", Modified words within highest 100 words on dataset, " + str(modifications_in_highest_100)
-	content += ", Modified words within highest 500 words on dataset, " + str(modifications_in_highest_500)
-	content += ", Modified words within highest 1000 words on dataset, " + str(modifications_in_highest_1000)
+#	content += ", Modified words within highest 100 words on dataset, " + str(modifications_in_highest_100)
+#	content += ", Modified words within highest 500 words on dataset, " + str(modifications_in_highest_500)
+#	content += ", Modified words within highest 1000 words on dataset, " + str(modifications_in_highest_1000)
 	content += ", Modified words within highest 4000 words on dataset, " + str(modifications_in_highest_4000)
-	content += ", Modified words within highest 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "), " + str(modifications_in_highest_10_percent)
-	content += ", Modified words within highest 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "), " + str(modifications_in_highest_20_percent)
-	content += ", Modified words within highest 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "), " + str(modifications_in_highest_30_percent)
-	content += ", Modified words/unigram probability within highest 100 words on dataset, " + str(unigram_modifications_in_highest_100)
-	content += ", Modified words/unigram probability within highest 500 words on dataset, " + str(unigram_modifications_in_highest_500)
-	content += ", Modified words/unigram probability within highest 1000 words on dataset, " + str(unigram_modifications_in_highest_1000)
+#	content += ", Modified words within highest 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "), " + str(modifications_in_highest_10_percent)
+#	content += ", Modified words within highest 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "), " + str(modifications_in_highest_20_percent)
+#	content += ", Modified words within highest 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "), " + str(modifications_in_highest_30_percent)
+#	content += ", Modified words/unigram probability within highest 100 words on dataset, " + str(unigram_modifications_in_highest_100)
+#	content += ", Modified words/unigram probability within highest 500 words on dataset, " + str(unigram_modifications_in_highest_500)
+#	content += ", Modified words/unigram probability within highest 1000 words on dataset, " + str(unigram_modifications_in_highest_1000)
 	content += ", Modified words/unigram probability within highest 4000 words on dataset, " + str(unigram_modifications_in_highest_4000)
-	content += ", Modified words/unigram probability within highest 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "), " + str(unigram_modifications_in_highest_10_percent)
-	content += ", Modified words/unigram probability within highest 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "), " + str(unigram_modifications_in_highest_20_percent)
-	content += ", Modified words/unigram probability within highest 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "), " + str(unigram_modifications_in_highest_30_percent)
+#	content += ", Modified words/unigram probability within highest 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "), " + str(unigram_modifications_in_highest_10_percent)
+#	content += ", Modified words/unigram probability within highest 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "), " + str(unigram_modifications_in_highest_20_percent)
+#	content += ", Modified words/unigram probability within highest 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "), " + str(unigram_modifications_in_highest_30_percent)
 	f.write("{}\n".format(content))
 
 
