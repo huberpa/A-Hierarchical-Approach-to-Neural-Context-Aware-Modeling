@@ -7,9 +7,9 @@ parser.add_option('--dataset', action="store", dest="dataset", help="Choose the 
 parser.add_option('--layers', action="store", dest="layers", help="The number of hidden layers in the model (default: 1)", default=1)
 parser.add_option('--layer_dim', action="store", dest="layer_dim", help="The number of neurons in the hidden layer(s)  (default: 128)", default=128)
 parser.add_option('--embedding_dim', action="store", dest="embedding_dim", help="The number of dimensions the embedding has  (default: 300)", default=300)
-parser.add_option('--batch_size', action="store", dest="batch_size", help="The batch size of the model (default: 30)", default=30)
-parser.add_option('--epochs', action="store", dest="epochs", help="The number of training epochs (default: 10)", default=10)
-parser.add_option('--vocabulary_size', action="store", dest="vocabulary_size", help="Size of the vocabulary (default: 12000)", default=12000)
+parser.add_option('--batch_size', action="store", dest="batch_size", help="The batch size of the model (default: 100)", default=100)
+parser.add_option('--epochs', action="store", dest="epochs", help="The number of training epochs (default: 25)", default=25)
+parser.add_option('--vocabulary_size', action="store", dest="vocabulary_size", help="Size of the vocabulary (default: 30000)", default=30000)
 parser.add_option('--unknown_token', action="store", dest="unknown_token", help="Token for words that are not in the vacabulary (default: <UNKWN>)", default="<UNKWN>")
 parser.add_option('--start_token', action="store", dest="start_token", help="Token for start (default: <START>)", default="<START>")
 parser.add_option('--end_token', action="store", dest="end_token", help="Token for end (default: <END>)", default="<END>")
@@ -56,6 +56,7 @@ import re
 import os
 import datetime
 import json
+import copy
 ##############################################
 
 
@@ -80,6 +81,7 @@ tokens = []
 classToken = []
 for index, sentence in enumerate(nltk.sent_tokenize(text)): 
     tokens.append(nltk.word_tokenize(sentence))
+
 
 for index, sentence in enumerate(tokens):
     classToken.append([])
@@ -113,6 +115,9 @@ for index1, sentence in enumerate(tokens):
 print "Adding start and end tokens..."
 for index, sentence in enumerate(tokens):
     tokens[index] = [word_to_index[start_token]] + tokens[index] + [word_to_index[end_token]]
+    classToken[index] = [0] + classToken[index] + [0]
+
+
 
 # Cut all sentences that are longer than 50 words
 longestSentence = 50
@@ -152,7 +157,7 @@ for index1, sequence in enumerate(pad_output_Words):
     for index2, word in enumerate(sequence):        
         trainingOutput[index1, index2] = word
 
-'''
+
 print ("-"*50)
 zip1 = []
 zip2 = []
@@ -162,7 +167,7 @@ for i in range(0,20):
         zip2.append(trainingOutput[i][index])
     print zip(zip1, zip2)
     print ("-"*50)
-'''
+
 trainingOutput = np.expand_dims(trainingOutput, -1)
 
 # Check if an existing model should be extended or if a new model should be created

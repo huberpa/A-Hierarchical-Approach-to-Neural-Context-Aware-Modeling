@@ -7,8 +7,9 @@ parser.add_option('--embedding_size', action="store", dest="embedding_size", hel
 parser.add_option('--layer_number', action="store", dest="layer_number", help="The number of hidden layers in the model (default: 1)", default=1)
 parser.add_option('--layer_dimension', action="store", dest="layer_dimension", help="The number of neurons in the hidden layer(s)  (default: 512)", default=512)
 parser.add_option('--batch_size', action="store", dest="batch_size", help="The batch size of the model (default: 100)", default=100)
-parser.add_option('--epochs', action="store", dest="epochs", help="The number of training epochs (default: 15)", default=15)
-parser.add_option('--data_path', action="store", dest="data_path", help="The path to the data folder (default: .)", default=".")
+parser.add_option('--epochs', action="store", dest="epochs", help="The number of training epochs (default: 25)", default=25)
+parser.add_option('--pre_path', action="store", dest="pre_path", help="The path to the preprocessed data folder (default: .)", default=".")
+parser.add_option('--save_path', action="store", dest="save_path", help="The path to the monolingual data folder (default: .)", default=".")
 parser.add_option('--name', action="store", dest="name", help="The name of the model (default: model)", default="model")
 
 options, args = parser.parse_args()
@@ -17,26 +18,31 @@ nb_hidden_layers = int(options.layer_number)
 hidden_dimensions= int(options.layer_dimension)
 batch_size = int(options.batch_size)
 epochs = int(options.epochs)
-data_path = options.data_path
+data_path = options.pre_path
 model_name = options.name
+save_path = options.save_path
 ##############################################
+
 
 # Imports
 ##############################################
-#import tensorflow as tf 
+import tensorflow as tf 
+from tensorflow.python.framework import dtypes
+from tensorflow.python.ops import variable_scope
 import numpy as np
 from xml.dom.minidom import parse, parseString
 import json
 import os
+from collections import Counter
 import datetime
 import sys
+from keras.preprocessing import sequence as kerasSequence
 import nltk
 reload(sys)  
 sys.setdefaultencoding('utf-8')
-#from tensorflow.python.framework import dtypes
-#from tensorflow.python.ops import variable_scope
 ##############################################
-'''
+
+
 # Helper functions
 ##############################################
 def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_timesteps_max,hidden_units,hidden_layers,embedding_size, start_of_sequence_id, end_of_sequence_id):
@@ -123,82 +129,30 @@ def createBatch(listing, batchSize):
 			batchList.append(listing[index:(index + batchSize)])
 	return batchList
 ##############################################
-'''
 
 
 # Main
 ##############################################
 
-# Load files
-english_talks = []
-english_words = []
-english_path  = open(data_path+"/train.tags.en-de.en", "r")
-english_text = english_path.read()
-englishFile = parseString(english_text)
-english_documents=englishFile.getElementsByTagName('doc')
-for document in english_documents:
-	content=document.getElementsByTagName('content')
-	for talk in content:
-		node_value = talk.childNodes[0].nodeValue.replace(';', '.')
-		splitted_talk = node_value.split('\n')
-		tokens = []
-		for line in splitted_talk:
-			if len(line) > 1:
-				tokens.append([])
-				for index, sentence in enumerate(nltk.sent_tokenize(line)): 
-					tokens[-1].append(nltk.word_tokenize(sentence))
-		english_talks = english_talks + tokens
-		#english_words = english_words + nltk.word_tokenize(node_value)
+# Open files
+print "Reading network input data..."
+with open (data_path+"/input_data.txt", 'r') as f:
+    pad_input_Words = json.load(f)
+with open (data_path+"/output_data.txt", 'r') as f:
+    pad_output_Words = json.load(f)
+with open (data_path+"/word_to_index_eng.txt", 'r') as f:
+    word_to_index_english = json.load(f)
+with open (data_path+"/index_to_word_eng.txt", 'r') as f:
+    index_to_word_english = json.load(f)
+with open (data_path+"/word_to_index_ger.txt", 'r') as f:
+    word_to_index_german = json.load(f)
+with open (data_path+"/index_to_word_ger.txt", 'r') as f:
+    index_to_word_german = json.load(f)
 
-german_talks = []
-german_words = []
-german_path  = open(data_path+"/train.tags.en-de.de", "r")
-german_text = german_path.read()
-germanFile = parseString(german_text)
-german_documents=germanFile.getElementsByTagName('doc')
-for document in german_documents:
-	content=document.getElementsByTagName('content')
-	for talk in content:
-		node_value = talk.childNodes[0].nodeValue.replace(';', '.')
-		splitted_talk = node_value.split('\n')
-		tokens = []
-		for line in splitted_talk:
-			if len(line) > 1:
-				tokens.append([])
-				for index, sentence in enumerate(nltk.sent_tokenize(line)): 
-					tokens[-1].append(nltk.word_tokenize(sentence))
-		german_talks = german_talks + tokens		
-		#german_words = german_words + nltk.word_tokenize(node_value)
-
-#english_words = [word.lower() for word in english_words]
-#german_words = [word.lower() for word in german_words]
-#english_talks = [[word.lower() for word in sentence] for sentence in english_talks]
-#german_talks = [[word.lower() for word in sentence] for sentence in german_talks]
-
-for index, talk in enumerate(english_talks):
-	print len(talk)
-	print len(german_talks[index])
-	print ('*'*50)
-	print ""
-
-#PROBLEM::: Satze nicht sync!!!!!
+################################################################################################################################
+################################################################################################################################
 
 '''
-print "Creating vocabulary..."
-allVocab = [word[0] for word in Counter(words).most_common()]
-vocab = ["<PAD>"]+allVocab[:vocabulary_size]
-vocab.append(unknown_token)
-vocab.append(start_token)
-vocab.append(end_token)
-
-
-# Retrieve input variables from files
-print "Retrieve input variables from files..."
-enc_input_dimension = len(encoder_input_data[0][0])
-enc_timesteps_max = len(encoder_input_data[0])
-dec_timesteps_max = len(decoder_input_data[0])
-vocab_size = len(index_to_word)
-
 # Split data into batches
 print "Split data into batches..."
 encoder_input_data_batch = createBatch(encoder_input_data, batch_size)
@@ -222,28 +176,27 @@ with tf.Session(config=session_config) as session:
 	saver = tf.train.Saver(max_to_keep=None)
 	writer = tf.summary.FileWriter(".", graph=tf.get_default_graph())
 	
-	# Training
 	print "Start training..."
 
-	if not os.path.exists(data_path+'/models/'):
-		os.makedirs(data_path+'/models/')
+	if not os.path.exists(save_path+'/models/'):
+		os.makedirs(save_path+'/models/')
 
-	if not os.path.exists(data_path+'/models/'+model_name):
-		os.makedirs(data_path+'/models/'+model_name)
+	if not os.path.exists(save_path+'/models/'+model_name):
+		os.makedirs(save_path+'/models/'+model_name)
 
-	with open(data_path+'/models/'+model_name+"/log.txt",'a') as f:
+	with open(save_path+'/models/'+model_name+"/log.txt",'a') as f:
 		f.write("{}\n".format(""))
 		f.write("{}\n".format("Training started with: " + str(options)))
 
 	for epoch in range(epochs):
 		print "epoch " + str(epoch+1) + " / " + str(epochs)
-		with open(data_path+'/models/'+model_name+"/log.txt",'a') as f:
+		with open(save_path+'/models/'+model_name+"/log.txt",'a') as f:
 			f.write("{}\n".format("epoch " + str(epoch+1) + " / " + str(epochs) + " " + str(datetime.datetime.now())))
 
 		for batch_index,_ in enumerate(encoder_input_data_batch):
 
 			print "----batch " + str(batch_index+1) + " / " + str(len(encoder_input_data_batch))
-			with open(data_path+'/models/'+model_name+"/log.txt",'a') as f:
+			with open(save_path+'/models/'+model_name+"/log.txt",'a') as f:
 				f.write("{}\n".format("batch " + str(batch_index+1) + " / " + str(len(encoder_input_data_batch)) + " " + str(datetime.datetime.now())))
 
 			feed = {}
@@ -254,22 +207,10 @@ with tf.Session(config=session_config) as session:
 			feed["decoder_outputs"] = decoder_output_data_batch[batch_index]
 			feed["mask"] = decoder_mask_batch[batch_index]
 
-			#print np.asarray(feed["encoder_inputs"]).shape
-			#print np.asarray(feed["decoder_inputs"]).shape
-			#print np.asarray(feed["decoder_outputs"]).shape
-
-			if len(np.asarray(feed["decoder_inputs"]).shape) < 2:
-				for p in feed["decoder_inputs"]:
-					print p
-					print len(p)
-
-			print ('*'*50)
-
-
 			training_output = session.run([updates, loss], feed_dict={enc_in:feed["encoder_inputs"], dec_in:feed["decoder_inputs"], dec_out: feed["decoder_outputs"], mask: feed["mask"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"]})
 
 		print "Saving epoch..."
-		saver.save(session, data_path+'/models/'+model_name+"/model", global_step = epoch+1)
+		saver.save(session, save_path+'/models/'+model_name+"/model", global_step = epoch+1)
 
 print "Training finished..."
 ##############################################

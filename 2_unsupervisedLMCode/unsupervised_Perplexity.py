@@ -123,6 +123,7 @@ for index, sentence in enumerate(tokens):
 
 	# Evaluate the prediction
 	perplexity = 0.
+	perplexity_count = 0
 	for index, word in enumerate(prediction):
 
 		# Add the probability of the correct output word to thw array (! This will be overwritten if the word is a modified one !)
@@ -174,10 +175,11 @@ for index, sentence in enumerate(tokens):
 					words_not_in_vocab += 1
 
 		if word[output_perplexity[index]] > 0:
+			perplexity_count += 1
 			perplexity += (math.log(word[output_perplexity[index]], 2))
 
 	# Calculate mean perplexity for the sentence
-	perplexity = -perplexity/length
+	perplexity = -perplexity/perplexity_count
 	sentence_level_perplexity.append(int(2**(perplexity)))
 	if int(2**(perplexity)) < 10000:
 		sentence_level_perplexity_filtered.append(int(2**(perplexity)))

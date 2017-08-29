@@ -192,6 +192,7 @@ with open(data_path+"/tests/"+save_file+"_results.txt", "a") as f:
 	f.write("{}\n".format("modifications_in_lowest_4000 / unigram: "+str(modifications_in_lowest_4000)))
 	f.write("{}\n".format("Number of <UNKWN> words: "+str(unkwns_in_lowest_4000)))
 	f.write("{}\n".format("Average sentence perplexity: "+str(np.mean(perplexity_results))))
+	f.write("{}\n".format("Median sentence perplexity: "+str(np.median(perplexity_results))))
 
 ##############################################
 
