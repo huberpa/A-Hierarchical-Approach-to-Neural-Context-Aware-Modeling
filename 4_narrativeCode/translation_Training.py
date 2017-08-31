@@ -21,12 +21,14 @@ epochs = int(options.epochs)
 data_path = options.pre_path
 model_name = options.name
 save_path = options.save_path
+batch_size_inference = 2
 ##############################################
 
 
 # Imports
 ##############################################
 import tensorflow as tf 
+from tensorflow.python.layers import core as layers_core
 from tensorflow.python.framework import dtypes
 from tensorflow.python.ops import variable_scope
 import numpy as np
@@ -36,7 +38,7 @@ import os
 from collections import Counter
 import datetime
 import sys
-from keras.preprocessing import sequence as kerasSequence
+import copy
 import nltk
 reload(sys)  
 sys.setdefaultencoding('utf-8')
@@ -48,7 +50,7 @@ sys.setdefaultencoding('utf-8')
 def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_timesteps_max,hidden_units,hidden_layers,embedding_size, start_of_sequence_id, end_of_sequence_id):
 
 	# Inputs / Outputs / Cells
-	encoder_inputs = tf.placeholder(dtypes.float32, shape=[None, enc_timesteps_max], name="encoder_inputs")
+	encoder_inputs = tf.placeholder(dtypes.int64, shape=[None, enc_timesteps_max], name="encoder_inputs")
 	encoder_lengths = tf.placeholder(dtypes.int32, shape=[None], name="encoder_lengths")
 	decoder_inputs = tf.placeholder(dtypes.int64, shape=[None, dec_timesteps_max], name="decoder_inputs")
 	decoder_lengths = tf.placeholder(dtypes.int32, shape=[None], name="decoder_lengths")
@@ -77,34 +79,30 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 		decoder_inputs_embedded = tf.nn.embedding_lookup(embeddings_dec, decoder_inputs)
 
 	# For training
-	decoder_train = tf.contrib.seq2seq.simple_decoder_fn_train(initial_state)
-	decoder_output_train, _, _ = tf.contrib.seq2seq.dynamic_rnn_decoder(cell=decoder_cell, decoder_fn=decoder_train, inputs=decoder_inputs_embedded, sequence_length=decoder_lengths, scope = "RNN_decoder")
-	
+	print decoder_inputs_embedded.shape
+	projection_layer = layers_core.Dense(units=dec_input_dimension, name="output_dense", use_bias=False)
+	helper = tf.contrib.seq2seq.TrainingHelper(decoder_inputs_embedded, decoder_lengths, time_major=False)
+	decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, initial_state, output_layer=projection_layer)
+	outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, maximum_iterations=dec_timesteps_max, output_time_major=False, impute_finished=True)
+	logits = outputs.rnn_output
+
+	print "logits and targets"
+	print logits.shape
+	print decoder_outputs.shape
+
 	# For generating
-	decoder_infer = tf.contrib.seq2seq.simple_decoder_fn_inference(encoder_state=initial_state, embeddings=embeddings_dec, start_of_sequence_id=start_of_sequence_id, end_of_sequence_id=end_of_sequence_id, maximum_length= dec_timesteps_max, num_decoder_symbols=dec_input_dimension)
-    inference_output, _, _ = tf.contrib.seq2seq.dynamic_rnn_decoder(cell=decoder_cell, decoder_fn=decoder_infer, scope = "RNN_decoder")
-
-	with variable_scope.variable_scope("Output_layer"):
-		outputs = []
-		transp = tf.transpose(decoder_output_train, [1, 0, 2])
-		decoder_output_unpacked = tf.unstack(transp)
-		for index, item in enumerate(decoder_output_unpacked):
-			if index == 0:
-				logits = tf.layers.dense(inputs=item, units=dec_input_dimension, name="output_dense")
-			if index > 0:
-				logits = tf.layers.dense(inputs=item, units=dec_input_dimension, name="output_dense", reuse=True)
-			outputs.append(logits)
-
-		tensor_output = tf.stack(values=outputs, axis=0)
-		forward_train = tf.transpose(tensor_output, [1, 0, 2])
+	helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embeddings_dec, tf.fill([batch_size_inference], start_of_sequence_id), end_of_sequence_id)
+	decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, initial_state, output_layer=projection_layer)
+	outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, maximum_iterations=dec_timesteps_max)
+	translations = outputs.sample_id
 
 	# Training
 	with variable_scope.variable_scope("Backpropagation"):
-		loss = tf.contrib.seq2seq.sequence_loss(targets=decoder_outputs, logits=forward_train, weights=masking)
+		loss = tf.contrib.seq2seq.sequence_loss(targets=decoder_outputs, logits=logits, weights=masking)
 		updates = tf.train.AdamOptimizer(1e-4).minimize(loss)
 
 	# Store variables for further training or execution
-	tf.add_to_collection('variables_to_store', forward_train)
+	tf.add_to_collection('variables_to_store', logits)
 	tf.add_to_collection('variables_to_store', updates)
 	tf.add_to_collection('variables_to_store', loss)
 	tf.add_to_collection('variables_to_store', encoder_inputs)
@@ -113,13 +111,13 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 	tf.add_to_collection('variables_to_store', masking)
 	tf.add_to_collection('variables_to_store', encoder_lengths)
 	tf.add_to_collection('variables_to_store', decoder_lengths)
-	tf.add_to_collection('variables_to_store', inference_output)
+	tf.add_to_collection('variables_to_store', translations)
 
-	return (forward_train, updates, loss, encoder_inputs, decoder_inputs, decoder_outputs, masking, encoder_lengths, decoder_lengths, inference_output)
+	return (logits, updates, loss, encoder_inputs, decoder_inputs, decoder_outputs, masking, encoder_lengths, decoder_lengths, translations)
 
 def softmax(x):
-    e_x = np.exp(x - np.max(x))
-    return e_x / e_x.sum()
+	e_x = np.exp(x - np.max(x))
+	return e_x / e_x.sum()
 
 def createBatch(listing, batchSize):
 	length = len(listing)
@@ -137,9 +135,9 @@ def createBatch(listing, batchSize):
 # Open files
 print "Reading network input data..."
 with open (data_path+"/input_data.txt", 'r') as f:
-    pad_input_Words = json.load(f)
+    encoder_input_data = json.load(f)
 with open (data_path+"/output_data.txt", 'r') as f:
-    pad_output_Words = json.load(f)
+    decoder_data = json.load(f)
 with open (data_path+"/word_to_index_eng.txt", 'r') as f:
     word_to_index_english = json.load(f)
 with open (data_path+"/index_to_word_eng.txt", 'r') as f:
@@ -149,22 +147,71 @@ with open (data_path+"/word_to_index_ger.txt", 'r') as f:
 with open (data_path+"/index_to_word_ger.txt", 'r') as f:
     index_to_word_german = json.load(f)
 
-################################################################################################################################
-################################################################################################################################
 
-'''
+# Variables for the network definition
+print "Retrieve input variables from files..."
+enc_dimension = len(index_to_word_english)
+dec_dimension = len(index_to_word_german)
+enc_timesteps_max = len(encoder_input_data[0])
+dec_timesteps_max = len(decoder_data[0])-1 # Because the output needs to be shifted by 1
+start_of_sequence_id = word_to_index_english["<START>"]
+end_of_sequence_id = word_to_index_english["<END>"]
+print enc_dimension
+print dec_dimension
+print enc_timesteps_max
+print dec_timesteps_max
+print "Start Token = " + str(start_of_sequence_id)
+print "End Token = " + str(end_of_sequence_id)
+
+
+# Variables for the network execution
+print "Calculate dynamic lengths..."
+encoder_length = []
+decoder_length = []
+decoder_mask = []
+decoder_input_data = []
+decoder_output_data = []
+
+for sentence in encoder_input_data:
+	counter = 0
+	for word in sentence:
+		if word != 0:
+			counter = counter + 1
+	encoder_length.append(counter)
+
+for idx, sentence in enumerate(decoder_data):
+	decoder_output_data.append(sentence[1:len(sentence)])
+	try:
+		sentence.remove(word_to_index_german["<END>"])
+	except ValueError:
+		sentence = sentence[:len(sentence)-1]
+
+	decoder_input_data.append(sentence)
+	count_words = 0
+	decoder_mask.append([])
+	for word in decoder_output_data[-1]:
+		if word != 0:
+			count_words = count_words + 1
+			decoder_mask[idx].append(1.0)
+		else:
+			decoder_mask[idx].append(0.0)
+	decoder_length.append(count_words)
+
+
 # Split data into batches
 print "Split data into batches..."
 encoder_input_data_batch = createBatch(encoder_input_data, batch_size)
 decoder_input_data_batch = createBatch(decoder_input_data, batch_size)
 decoder_output_data_batch = createBatch(decoder_output_data, batch_size)
-encoder_input_length_batch = createBatch(encoder_input_length, batch_size)
-decoder_input_length_batch = createBatch(decoder_input_length, batch_size)
+encoder_input_length_batch = createBatch(encoder_length, batch_size)
+decoder_input_length_batch = createBatch(decoder_length, batch_size)
 decoder_mask_batch = createBatch(decoder_mask, batch_size)
+
+print np.array(decoder_output_data_batch).shape
 
 # Create computational graph
 print "Create computational graph..."
-network_train, updates, loss, enc_in, dec_in, dec_out, mask, enc_len, dec_len, inf_out = seq2seq(enc_input_dimension=enc_input_dimension, enc_timesteps_max=enc_timesteps_max, dec_timesteps_max=dec_timesteps_max, hidden_units=hidden_dimensions, hidden_layers=nb_hidden_layers, embedding_size=embedding_size, dec_input_dimension=dec_input_dimension, start_of_sequence_id=, end_of_sequence_id=)
+network_train, updates, loss, enc_in, dec_in, dec_out, mask, enc_len, dec_len, inf_out = seq2seq(enc_input_dimension=enc_dimension, enc_timesteps_max=enc_timesteps_max, dec_timesteps_max=dec_timesteps_max, hidden_units=hidden_dimensions, hidden_layers=nb_hidden_layers, embedding_size=embedding_size, dec_input_dimension=dec_dimension, start_of_sequence_id=start_of_sequence_id, end_of_sequence_id=end_of_sequence_id)
 
 # Launch the graph
 print "Launch the graph..."
@@ -177,7 +224,6 @@ with tf.Session(config=session_config) as session:
 	writer = tf.summary.FileWriter(".", graph=tf.get_default_graph())
 	
 	print "Start training..."
-
 	if not os.path.exists(save_path+'/models/'):
 		os.makedirs(save_path+'/models/')
 
@@ -214,5 +260,5 @@ with tf.Session(config=session_config) as session:
 
 print "Training finished..."
 ##############################################
-'''
+
 # END

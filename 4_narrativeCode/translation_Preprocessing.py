@@ -145,28 +145,31 @@ print "Save preprocessed data into files..."
 if not os.path.exists(save_path):
     os.makedirs(save_path)
 
-if not os.path.exists(save_path+"/input_data.txt"):
-	with open(save_path+"/input_data.txt",'w') as f:
-		json.dump(pad_input_Words, f)
+if not os.path.exists(save_path+"/"+model_name):
+    os.makedirs(save_path+"/"+model_name)
 
-if not os.path.exists(save_path+"/output_data.txt"):
-	with open(save_path+"/output_data.txt",'w') as f:
-		json.dump(pad_output_Words, f)
+if not os.path.exists(save_path+"/"+model_name+"/input_data.txt"):
+	with open(save_path+"/"+model_name+"/input_data.txt",'w') as f:
+		json.dump(pad_input_Words.tolist(), f)
 
-if not os.path.exists(save_path+"/word_to_index_eng.txt"):
-	with open(save_path+"/word_to_index_eng.txt",'w') as f:
+if not os.path.exists(save_path+"/"+model_name+"/output_data.txt"):
+	with open(save_path+"/"+model_name+"/output_data.txt",'w') as f:
+		json.dump(pad_output_Words.tolist(), f)
+
+if not os.path.exists(save_path+"/"+model_name+"/word_to_index_eng.txt"):
+	with open(save_path+"/"+model_name+"/word_to_index_eng.txt",'w') as f:
 		json.dump(word_to_index_english, f)
 
-if not os.path.exists(save_path+"/index_to_word_eng.txt"):
-	with open(save_path+"/index_to_word_eng.txt",'w') as f:
+if not os.path.exists(save_path+"/"+model_name+"/index_to_word_eng.txt"):
+	with open(save_path+"/"+model_name+"/index_to_word_eng.txt",'w') as f:
 		json.dump(index_to_word_english, f)
 
-if not os.path.exists(save_path+"/word_to_index_ger.txt"):
-	with open(save_path+"/word_to_index_ger.txt",'w') as f:
+if not os.path.exists(save_path+"/"+model_name+"/word_to_index_ger.txt"):
+	with open(save_path+"/"+model_name+"/word_to_index_ger.txt",'w') as f:
 		json.dump(word_to_index_german, f)
 
-if not os.path.exists(save_path+"/index_to_word_ger.txt"):
-	with open(save_path+"/index_to_word_ger.txt",'w') as f:
+if not os.path.exists(save_path+"/"+model_name+"/index_to_word_ger.txt"):
+	with open(save_path+"/"+model_name+"/index_to_word_ger.txt",'w') as f:
 		json.dump(index_to_word_german, f)
 
 print "Preprocessing finished..."
