@@ -159,6 +159,19 @@ network, updates, loss, enc_in, dec_in, dec_out, mask, enc_len, dec_len, lstm_ou
 # Launch the graph
 print "Launch the graph..."
 with tf.Session() as session:
+
+
+	feed = {}
+	feed["encoder_inputs"] = encoder_input_data_batch[0]
+	feed["encoder_length"] = encoder_input_length_batch[0]
+	feed["decoder_inputs"] = decoder_input_data_batch[0]
+	feed["decoder_length"] = decoder_input_length_batch[0]
+	feed["decoder_outputs"] = decoder_output_data_batch[0]
+	feed["mask"] = decoder_mask_batch[0]
+
+	training_output = session.run(network, feed_dict={enc_in:feed["encoder_inputs"], dec_in:feed["decoder_inputs"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"]})
+	print training_output
+	'''
 	session.run(tf.global_variables_initializer())
 	saver = tf.train.Saver(max_to_keep=None)
 	writer = tf.summary.FileWriter(".", graph=tf.get_default_graph())
@@ -206,5 +219,5 @@ with tf.Session() as session:
 
 print "Training finished..."
 ##############################################
-
+'''
 # END

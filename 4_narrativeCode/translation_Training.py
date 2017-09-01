@@ -21,7 +21,7 @@ epochs = int(options.epochs)
 data_path = options.pre_path
 model_name = options.name
 save_path = options.save_path
-batch_size_inference = 2
+batch_size_inference = 1
 ##############################################
 
 
@@ -39,7 +39,6 @@ from collections import Counter
 import datetime
 import sys
 import copy
-import nltk
 reload(sys)  
 sys.setdefaultencoding('utf-8')
 ##############################################
@@ -56,6 +55,7 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 	decoder_lengths = tf.placeholder(dtypes.int32, shape=[None], name="decoder_lengths")
 	decoder_outputs = tf.placeholder(dtypes.int64, shape=[None, dec_timesteps_max], name="decoder_outputs")
 	masking = tf.placeholder(dtypes.float32, shape=[None, dec_timesteps_max], name="loss_masking")
+	start_token_infer = tf.placeholder(dtypes.int32, shape=[None], name="start_token_infer")
 
 	# Cells
 	encoder_cell = single_cell_enc = tf.contrib.rnn.LSTMCell(hidden_units)
@@ -78,31 +78,27 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 		embeddings_dec = tf.Variable(tf.random_uniform([dec_input_dimension, embedding_size], -1.0, 1.0), dtype=tf.float32)
 		decoder_inputs_embedded = tf.nn.embedding_lookup(embeddings_dec, decoder_inputs)
 
-	# For training
-	print decoder_inputs_embedded.shape
-	projection_layer = layers_core.Dense(units=dec_input_dimension, name="output_dense", use_bias=False)
-	helper = tf.contrib.seq2seq.TrainingHelper(decoder_inputs_embedded, decoder_lengths, time_major=False)
-	decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, initial_state, output_layer=projection_layer)
-	outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, maximum_iterations=dec_timesteps_max, output_time_major=False, impute_finished=True)
-	logits = outputs.rnn_output
+	final_layer = layers_core.Dense(units=dec_input_dimension, name="Output_layer")
+	with variable_scope.variable_scope("RNN_decoder"):
+		helper = tf.contrib.seq2seq.TrainingHelper(decoder_inputs_embedded, decoder_lengths)
+		decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, initial_state, output_layer=final_layer)
+		outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, maximum_iterations=dec_timesteps_max)
+		training_output = outputs.rnn_output
+		print training_output.shape
 
-	print "logits and targets"
-	print logits.shape
-	print decoder_outputs.shape
-
-	# For generating
-	helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embeddings_dec, tf.fill([batch_size_inference], start_of_sequence_id), end_of_sequence_id)
-	decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, initial_state, output_layer=projection_layer)
-	outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, maximum_iterations=dec_timesteps_max)
-	translations = outputs.sample_id
+		helper_infer = tf.contrib.seq2seq.GreedyEmbeddingHelper(embeddings_dec, start_token_infer, end_of_sequence_id)
+		decoder_infer = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper_infer, initial_state, output_layer=final_layer)
+		outputs_infer, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder_infer, maximum_iterations=dec_timesteps_max)
+		infer_output = outputs_infer.sample_id
+		print infer_output.shape
 
 	# Training
 	with variable_scope.variable_scope("Backpropagation"):
-		loss = tf.contrib.seq2seq.sequence_loss(targets=decoder_outputs, logits=logits, weights=masking)
+		loss = tf.contrib.seq2seq.sequence_loss(targets=decoder_outputs, logits=training_output, weights=masking)
 		updates = tf.train.AdamOptimizer(1e-4).minimize(loss)
 
 	# Store variables for further training or execution
-	tf.add_to_collection('variables_to_store', logits)
+	tf.add_to_collection('variables_to_store', training_output)
 	tf.add_to_collection('variables_to_store', updates)
 	tf.add_to_collection('variables_to_store', loss)
 	tf.add_to_collection('variables_to_store', encoder_inputs)
@@ -111,9 +107,10 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 	tf.add_to_collection('variables_to_store', masking)
 	tf.add_to_collection('variables_to_store', encoder_lengths)
 	tf.add_to_collection('variables_to_store', decoder_lengths)
-	tf.add_to_collection('variables_to_store', translations)
+	tf.add_to_collection('variables_to_store', infer_output)
+	tf.add_to_collection('variables_to_store', start_token_infer)
 
-	return (logits, updates, loss, encoder_inputs, decoder_inputs, decoder_outputs, masking, encoder_lengths, decoder_lengths, translations)
+	return (training_output, updates, loss, encoder_inputs, decoder_inputs, decoder_outputs, masking, encoder_lengths, decoder_lengths, infer_output, start_token_infer)
 
 def softmax(x):
 	e_x = np.exp(x - np.max(x))
@@ -187,16 +184,13 @@ for idx, sentence in enumerate(decoder_data):
 		sentence = sentence[:len(sentence)-1]
 
 	decoder_input_data.append(sentence)
-	count_words = 0
 	decoder_mask.append([])
 	for word in decoder_output_data[-1]:
 		if word != 0:
-			count_words = count_words + 1
 			decoder_mask[idx].append(1.0)
 		else:
 			decoder_mask[idx].append(0.0)
-	decoder_length.append(count_words)
-
+	decoder_length.append(len(decoder_output_data[-1]))
 
 # Split data into batches
 print "Split data into batches..."
@@ -207,11 +201,9 @@ encoder_input_length_batch = createBatch(encoder_length, batch_size)
 decoder_input_length_batch = createBatch(decoder_length, batch_size)
 decoder_mask_batch = createBatch(decoder_mask, batch_size)
 
-print np.array(decoder_output_data_batch).shape
-
 # Create computational graph
 print "Create computational graph..."
-network_train, updates, loss, enc_in, dec_in, dec_out, mask, enc_len, dec_len, inf_out = seq2seq(enc_input_dimension=enc_dimension, enc_timesteps_max=enc_timesteps_max, dec_timesteps_max=dec_timesteps_max, hidden_units=hidden_dimensions, hidden_layers=nb_hidden_layers, embedding_size=embedding_size, dec_input_dimension=dec_dimension, start_of_sequence_id=start_of_sequence_id, end_of_sequence_id=end_of_sequence_id)
+train_out, updates, loss, enc_in, dec_in, dec_out, mask, enc_len, dec_len, inf_out, start_token_infer = seq2seq(enc_input_dimension=enc_dimension, enc_timesteps_max=enc_timesteps_max, dec_timesteps_max=dec_timesteps_max, hidden_units=hidden_dimensions, hidden_layers=nb_hidden_layers, embedding_size=embedding_size, dec_input_dimension=dec_dimension, start_of_sequence_id=start_of_sequence_id, end_of_sequence_id=end_of_sequence_id)
 
 # Launch the graph
 print "Launch the graph..."
@@ -258,7 +250,24 @@ with tf.Session(config=session_config) as session:
 		print "Saving epoch..."
 		saver.save(session, save_path+'/models/'+model_name+"/model", global_step = epoch+1)
 
-print "Training finished..."
+	print "Training finished..."
 ##############################################
 
+	encoder_input_data_batch_infer = createBatch(encoder_input_data, batch_size_inference)
+	encoder_input_length_batch_infer = createBatch(encoder_length, batch_size_inference)
+	decoder_input_length_batch_infer = createBatch(decoder_length, batch_size_inference)
+
+	feed = {}
+	feed["encoder_inputs"] = encoder_input_data_batch_infer[5]
+	feed["encoder_length"] = encoder_input_length_batch_infer[5]
+	feed["decoder_length"] = decoder_input_length_batch_infer[5]
+	feed["start_token_infer"] = [start_of_sequence_id]*batch_size_inference
+
+	test_output = session.run(inf_out, feed_dict={enc_in:feed["encoder_inputs"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"], start_token_infer: feed["start_token_infer"]})
+	print test_output
+	test_sentence = ""
+	for batch in test_output.tolist():
+		for word in batch:
+			test_sentence = test_sentence + index_to_word_german[str(word)]
+	print test_sentence
 # END
