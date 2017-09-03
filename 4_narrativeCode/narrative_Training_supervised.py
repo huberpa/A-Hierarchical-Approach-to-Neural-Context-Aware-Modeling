@@ -74,16 +74,17 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_timesteps_max,hidden_units
 		lstm_output_unpacked = tf.unstack(transp)
 		for index, item in enumerate(lstm_output_unpacked):
 			if index == 0:
-				logits = tf.layers.dense(inputs=item, units=1, name="output_dense")
+				logits = tf.layers.dense(inputs=item, units=2, name="output_dense")
 			if index > 0:
-				logits = tf.layers.dense(inputs=item, units=1, name="output_dense", reuse=True)
+				logits = tf.layers.dense(inputs=item, units=2, name="output_dense", reuse=True)
 			outputs.append(logits)
 		tensor_output = tf.stack(values=outputs, axis=0)
 		forward = tf.transpose(tensor_output, [1, 0, 2])
+		forward = tf.nn.softmax(forward)
 
 	# Training
 	with variable_scope.variable_scope("Backpropagation"):
-		loss = tf.contrib.seq2seq.sequence_loss(targets=decoder_outputs, logits=forward, weights=masking)# Change to False?
+		loss = tf.contrib.seq2seq.sequence_loss(targets=decoder_outputs, logits=forward, weights=masking)
 		updates = tf.train.AdamOptimizer(1e-4).minimize(loss)
 
 	# Store variables for further training or execution
@@ -97,7 +98,7 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_timesteps_max,hidden_units
 	tf.add_to_collection('variables_to_store', encoder_lengths)
 	tf.add_to_collection('variables_to_store', decoder_lengths)
 
-	return (forward, updates, loss, encoder_inputs, decoder_inputs, decoder_outputs, masking, encoder_lengths, decoder_lengths, lstm_output)
+	return (forward, updates, loss, encoder_inputs, decoder_inputs, decoder_outputs, masking, encoder_lengths, decoder_lengths)
 
 def softmax(x):
     e_x = np.exp(x - np.max(x))
@@ -154,24 +155,11 @@ decoder_mask_batch = createBatch(decoder_mask, batch_size)
 
 # Create computational graph
 print "Create computational graph..."
-network, updates, loss, enc_in, dec_in, dec_out, mask, enc_len, dec_len, lstm_out = seq2seq(enc_input_dimension=enc_input_dimension, enc_timesteps_max=enc_timesteps_max, dec_timesteps_max=dec_timesteps_max, hidden_units=hidden_dimensions, hidden_layers=nb_hidden_layers, input_embedding_size=embedding_size, vocab_size=vocab_size)
+network, updates, loss, enc_in, dec_in, dec_out, mask, enc_len, dec_len = seq2seq(enc_input_dimension=enc_input_dimension, enc_timesteps_max=enc_timesteps_max, dec_timesteps_max=dec_timesteps_max, hidden_units=hidden_dimensions, hidden_layers=nb_hidden_layers, input_embedding_size=embedding_size, vocab_size=vocab_size)
 
 # Launch the graph
 print "Launch the graph..."
 with tf.Session() as session:
-
-
-	feed = {}
-	feed["encoder_inputs"] = encoder_input_data_batch[0]
-	feed["encoder_length"] = encoder_input_length_batch[0]
-	feed["decoder_inputs"] = decoder_input_data_batch[0]
-	feed["decoder_length"] = decoder_input_length_batch[0]
-	feed["decoder_outputs"] = decoder_output_data_batch[0]
-	feed["mask"] = decoder_mask_batch[0]
-
-	training_output = session.run(network, feed_dict={enc_in:feed["encoder_inputs"], dec_in:feed["decoder_inputs"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"]})
-	print training_output
-	'''
 	session.run(tf.global_variables_initializer())
 	saver = tf.train.Saver(max_to_keep=None)
 	writer = tf.summary.FileWriter(".", graph=tf.get_default_graph())
@@ -189,12 +177,12 @@ with tf.Session() as session:
 		f.write("{}\n".format(""))
 		f.write("{}\n".format("Training started with: " + str(options)))
 
-	for epoch in range(1):
+	for epoch in range(epochs):
 		print "epoch " + str(epoch+1) + " / " + str(epochs)
 		with open(data_path+'/models/'+model_name+"/log.txt",'a') as f:
 			f.write("{}\n".format("epoch " + str(epoch+1) + " / " + str(epochs) + " " + str(datetime.datetime.now())))
 
-		for batch_index,_ in enumerate(encoder_input_data_batch[:2]):
+		for batch_index,_ in enumerate(encoder_input_data_batch):
 
 			print "----batch " + str(batch_index+1) + " / " + str(len(encoder_input_data_batch))
 			with open(data_path+'/models/'+model_name+"/log.txt",'a') as f:
@@ -211,13 +199,13 @@ with tf.Session() as session:
 			training_output = session.run([updates, loss], feed_dict={enc_in:feed["encoder_inputs"], dec_in:feed["decoder_inputs"], dec_out: feed["decoder_outputs"], mask: feed["mask"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"]})
 			print training_output
 
-			result_raw = session.run(lstm_out, feed_dict={enc_in:feed["encoder_inputs"], dec_in:feed["decoder_inputs"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"]})
+			result_raw = session.run(network, feed_dict={enc_in:feed["encoder_inputs"], dec_in:feed["decoder_inputs"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"]})
 			print result_raw
 
-		#print "Saving epoch..."
-		#saver.save(session, data_path+'/models/'+model_name+"/model", global_step = epoch+1)
+		print "Saving epoch..."
+		saver.save(session, data_path+'/models/'+model_name+"/model", global_step = epoch+1)
 
 print "Training finished..."
 ##############################################
-'''
+
 # END

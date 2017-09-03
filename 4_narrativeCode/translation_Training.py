@@ -252,7 +252,7 @@ with tf.Session(config=session_config) as session:
 
 	print "Training finished..."
 ##############################################
-
+'''
 	encoder_input_data_batch_infer = createBatch(encoder_input_data, batch_size_inference)
 	encoder_input_length_batch_infer = createBatch(encoder_length, batch_size_inference)
 	decoder_input_length_batch_infer = createBatch(decoder_length, batch_size_inference)
@@ -270,4 +270,5 @@ with tf.Session(config=session_config) as session:
 		for word in batch:
 			test_sentence = test_sentence + index_to_word_german[str(word)]
 	print test_sentence
+	'''
 # END
