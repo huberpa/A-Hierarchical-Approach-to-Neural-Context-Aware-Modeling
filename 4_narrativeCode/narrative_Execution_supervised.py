@@ -98,15 +98,13 @@ with tf.Session(config=session_config) as session:
 		feed["decoder_length"] = decoder_input_length_batch[batch_index]
 
 		result_raw = session.run(variables[0], feed_dict={variables[3]:feed["encoder_inputs"], variables[4]:feed["decoder_inputs"], variables[7]: feed["encoder_length"], variables[8]: feed["decoder_length"]})
-		print "result_raw"
-		print result_raw
 		result_raw.tolist()
 		for idx1, sentence in enumerate(result_raw):
 			for idx2, probability in enumerate(sentence):
 				word_modified = decoder_output_data_batch[batch_index][idx1][idx2]
 				if decoder_input_data_batch[batch_index][idx1][idx2] != word_to_index["<PAD>"]:
 					if decoder_input_data_batch[batch_index][idx1][idx2] != word_to_index["<UNKWN>"]:
-						results.append([probability, word_modified, index_to_word[str(decoder_input_data_batch[batch_index][idx1][idx2])]])
+						results.append([str(probability[1]), word_modified, index_to_word[str(decoder_input_data_batch[batch_index][idx1][idx2])]])
 			
 	with open(data_path+"/tests/"+save_file+"_word_probability.txt",'a') as f:
 		json.dump(results, f)
@@ -114,14 +112,17 @@ with tf.Session(config=session_config) as session:
 with open(data_path+"/tests/"+save_file+"_word_probability.txt",'r') as f:
 	results =json.load(f)
 
+trueResults = []
+for element in results:
+	trueResults.append([float(element[0]), element[1], element[2]])
+
+
 #Sort all the probabilities to find modified words
-results.sort(key=lambda row: row[0], reverse=True)
-print "results[0]:"
-print results[0]
+trueResults.sort(key=lambda row: row[0], reverse=True)
 results_modified = []
 modifications_in_highest_4000 = 0
 unkwns_in_highest_4000 = 0
-for idx, element in enumerate(results):
+for idx, element in enumerate(trueResults):
 	if element[2] == "<UNKWN>":
 		unkwns_in_highest_4000 += 1
 	if element[1] == 1:
@@ -131,7 +132,7 @@ for idx, element in enumerate(results):
 
 with open(data_path+"/tests/"+save_file+"_results.txt",'a') as f:
 	f.write("{}\n".format("Number of words modified and in results_modified: "+str(len(results_modified))))
-	f.write("{}\n".format("modifications_in_lowest_4000: "+str(modifications_in_highest_4000)))
+	f.write("{}\n".format("modifications_in_highest_4000: "+str(modifications_in_highest_4000)))
 	f.write("{}\n".format("Number of <UNKWN> words: "+str(unkwns_in_highest_4000)))
 	f.write("{}\n".format("---"))
 	f.write("{}\n".format(str(results_modified)))

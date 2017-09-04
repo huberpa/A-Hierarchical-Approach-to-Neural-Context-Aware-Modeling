@@ -157,6 +157,10 @@ with open(data_path+"/tests/"+save_file+"_word_probability.txt",'r') as f:
 with open(data_path+"/tests/"+save_file+"_sentence_perplexity.txt",'r') as f:
 	perplexity_results =json.load(f)
 
+trueResults = []
+for element in results:
+	trueResults.append([float(element[0]), float(element[1]), element[2], element[3]])
+
 #Sort all the probabilities to find modified words
 results.sort(key=lambda row: row[0])
 results_modified = []

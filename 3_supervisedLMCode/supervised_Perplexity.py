@@ -170,6 +170,8 @@ for index, prob in enumerate(all_words_probability_with_modified):
 			modifications_in_highest_1000 += 1
 	if index <= 4000:
 		if prob[1] == 1:
+			print "Found at position "+str(index)
+			print prob
 			modifications_in_highest_4000 += 1
 
 for index, prob in enumerate(all_words_probability_with_modified[:(len(all_words_probability_with_modified)/100*30)]):
