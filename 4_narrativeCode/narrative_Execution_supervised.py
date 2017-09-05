@@ -104,7 +104,7 @@ with tf.Session(config=session_config) as session:
 				word_modified = decoder_output_data_batch[batch_index][idx1][idx2]
 				if decoder_input_data_batch[batch_index][idx1][idx2] != word_to_index["<PAD>"]:
 					if decoder_input_data_batch[batch_index][idx1][idx2] != word_to_index["<UNKWN>"]:
-						results.append([str(probability[1]), word_modified, index_to_word[str(decoder_input_data_batch[batch_index][idx1][idx2])]])
+						results.append([str(probability[0]), str(probability[1]), word_modified, index_to_word[str(decoder_input_data_batch[batch_index][idx1][idx2])]])
 			
 	with open(data_path+"/tests/"+save_file+"_word_probability.txt",'a') as f:
 		json.dump(results, f)
@@ -114,19 +114,19 @@ with open(data_path+"/tests/"+save_file+"_word_probability.txt",'r') as f:
 
 trueResults = []
 for element in results:
-	trueResults.append([float(element[0]), element[1], element[2]])
+	trueResults.append([float(element[0]), float(element[1]), element[2], element[3]])
 
 
 #Sort all the probabilities to find modified words
-trueResults.sort(key=lambda row: row[0], reverse=True)
+trueResults.sort(key=lambda row: row[1], reverse=True)
 results_modified = []
 modifications_in_highest_4000 = 0
 unkwns_in_highest_4000 = 0
 for idx, element in enumerate(trueResults):
-	if element[2] == "<UNKWN>":
+	if element[3] == "<UNKWN>":
 		unkwns_in_highest_4000 += 1
-	if element[1] == 1:
-		results_modified.append([idx, element[2], element[0]])
+	if element[2] == 1:
+		results_modified.append([idx, element[3], element[0], element[1]])
 		if idx <= 4000:
 			modifications_in_highest_4000 += 1
 

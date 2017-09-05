@@ -129,12 +129,19 @@ for index0, talk in enumerate(talks):
 				classToken[index0][index1][index2+1] = 1
 				proofWord = word[word.find("___")+3:word.rfind("___")]
 			talks_numerified[index0][index1].append(word_to_index[proofWord] if proofWord in word_to_index else word_to_index[unknown_token])
+			
+			print "DEBUG OUTPUT:::"
+			print talks_numerified[index0]
+			print classToken[index0]
+
+'''
 		talks_numerified[index0][index1].append(word_to_index[end_token])
 		classToken[index0][index1].append(0)
 		trainInput = np.zeros((1, len(talks_numerified[index0][index1])), dtype=np.int16)
 		for index, idx in enumerate(talks_numerified[index0][index1]):
 			trainInput[0, index] = idx
 		talk_sentence_embedding[index0].append(newSentenceModel.predict(trainInput, verbose=0)[0][-1]) # Has shape (#nb_talks, #talk_length(nb_sentences), #hidden_state_neurons)
+
 
 for index, talk in enumerate(talk_sentence_embedding):
 	for index2, sentence in enumerate(talk):
@@ -250,4 +257,4 @@ if not os.path.exists(save_path+"/index_to_word.txt"):
 		json.dump(index_to_word, f)
 
 print "Preprocessing finished..."
-
+'''
