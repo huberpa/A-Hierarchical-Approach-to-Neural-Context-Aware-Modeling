@@ -74,6 +74,7 @@ all_words_probability_with_modified = []
 nb_changed_words = 0
 nb_changed_words_high_prob = 0
 nb_words_high_prob = 0
+unkwn_words = 0
 # Iterate through all the sentences in the data and compute the perplexity
 for index, sentence in enumerate(tokens):
 	value_sentence = []
@@ -134,7 +135,8 @@ for index, sentence in enumerate(tokens):
 				count_o = count_o
 
 			all_words_probability_with_modified.append([word, 0, (word*len(words))/(count_o), index_to_word[str(input_perplexity[index])]])
-
+		else:
+			unkwn_words = unkwn_words + 1 
 		#check if word got replaced and if so, save in special array
 		for change in changes:
 			if change[0] == index:
@@ -223,6 +225,7 @@ for index, prob in enumerate(all_words_probability_with_modified[:(len(all_words
 print "Changed words high prob: "+ str(nb_changed_words_high_prob)
 print "Words high prob: "+ str(nb_words_high_prob)
 print "Changed words: "+ str(nb_changed_words)
+print "unkwn words: " + unkwn_words
 
 precision = float(nb_changed_words_high_prob) / float(nb_words_high_prob)
 recall = float(nb_changed_words_high_prob) / float(nb_changed_words)

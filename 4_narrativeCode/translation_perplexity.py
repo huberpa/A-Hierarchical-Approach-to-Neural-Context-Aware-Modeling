@@ -26,6 +26,9 @@ import os
 import nltk
 from collections import Counter
 import math
+import sys
+reload(sys)  
+sys.setdefaultencoding('utf-8')
 ##############################################
 
 
@@ -45,8 +48,9 @@ for index1,element in enumerate(encoder_input_data):
 	ger_sentence = ""
 	eng_sentence = ""
 	for index2, word in enumerate(element):
-		eng_sentence = eng_sentence + index_to_word_english[str(encoder_input_data[index1][index2])]
-		ger_sentence = ger_sentence + index_to_word_german[str(decoder_data[index1][index2])]
+		if word != 0:
+			eng_sentence = eng_sentence + " " + index_to_word_english[str(encoder_input_data[index1][index2])]
+			ger_sentence = ger_sentence + " " + index_to_word_german[str(decoder_data[index1][index2])]
 
 	print eng_sentence
 	print "is translated into"
