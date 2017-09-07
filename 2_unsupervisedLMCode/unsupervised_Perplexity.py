@@ -76,7 +76,7 @@ sentence_level_perplexity_filtered = []
 words_not_in_vocab = 0
 all_words_probability_with_modified = []
 # Iterate through all the sentences in the data and compute the perplexity
-for index, sentence in enumerate(tokens):
+for index, sentence in enumerate(tokens[:100]):
 	value_sentence = []
 
 	# DEBUGGING output
@@ -177,10 +177,15 @@ for index, sentence in enumerate(tokens):
 		if word[output_perplexity[index]] > 0:
 			perplexity_count += 1
 			perplexity += (math.log(word[output_perplexity[index]], 2))
+			print "perplexity calculation adds to perplexity variable :"
+			print "math.log(" + str(word[output_perplexity[index]]) + ", 2) = " + str((math.log(word[output_perplexity[index]], 2)))
 
 	# Calculate mean perplexity for the sentence
+	print "perplexity of the sentence is calculated by :"
+	print str(-perplexity) + " / " + str(perplexity_count) + " = " + str(-perplexity/perplexity_count)
 	perplexity = -perplexity/perplexity_count
 	sentence_level_perplexity.append(int(2**(perplexity)))
+	print "final perplexity by 2^pp(w): " + str(int(2**(perplexity)))
 	if int(2**(perplexity)) < 2000:
 		sentence_level_perplexity_filtered.append(int(2**(perplexity)))
 	else:

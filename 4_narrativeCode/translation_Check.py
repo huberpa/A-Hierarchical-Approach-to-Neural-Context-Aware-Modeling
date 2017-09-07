@@ -3,12 +3,14 @@
 ##############################################
 import optparse
 parser = optparse.OptionParser()
+parser.add_option('--input', action="store", dest="input", help="Sentences to be checked by the model (default: what do you really see when you look into the mirror? how many different types of peaople are there in the world? what is the reason for you to dress like that? i'm not only a proud citizen of the country but also the continent. end sentence.)", default="what do you really see when you look into the mirror? how many different types of peaople are there in the world? what is the reason for you to dress like that? i'm not only a proud citizen of the country but also the continent. end sentence.")
 parser.add_option('--model_path', action="store", dest="model_path", help="The path to the model file (default: '')", default="")
 parser.add_option('--data_path', action="store", dest="data_path", help="The path to the dev or test data that should be tested on, including index_to_word and word_to_index (default: .)", default=".")
 
 options, args = parser.parse_args()
 model_path = options.model_path
 data_path = options.data_path
+inp = options.input
 ##############################################
 
 
@@ -55,7 +57,7 @@ with open (data_path+"/index_to_word_ger.txt", 'r') as f:
 	index_to_word_ger = json.load(f)
 
 final_input_data = []
-input_data = "how much is the tomato? i want to play football. i'm really tall. which way is right? i'm really annoyed! so many possibilities. how can anyone say that they are really on the planet earth? last sentence."
+input_data = inp
 tokenized_input = nltk.sent_tokenize(input_data)
 
 print tokenized_input
@@ -121,10 +123,10 @@ with tf.Session(config=session_config) as session:
 				if word != 0:
 					orig_sentence = orig_sentence + " " + index_to_word_eng[str(word)]
 			for word in batch:
-				if word != word_to_index_eng["<END>"]:
-					test_sentence = test_sentence + " " + index_to_word_ger[str(word)]
-			print "The english sentence " + orig_sentence
-			print "is translated into " + test_sentence
+				#if word != word_to_index_eng["<END>"]:
+				test_sentence = test_sentence + " " + index_to_word_ger[str(word)]
+			print "The english sentence :::		" + orig_sentence
+			print "is translated into :::		" + test_sentence
 
 ##############################################
 

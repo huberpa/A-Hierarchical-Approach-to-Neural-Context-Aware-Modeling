@@ -182,7 +182,8 @@ else:
         print "add LSTM layer...."
         model.add(LSTM(units=hidden_dimensions, return_sequences=True))
     model.add(TimeDistributed(Dense(len(vocab), activation='softmax')))
-    model.compile(loss='sparse_categorical_crossentropy', optimizer="adam")
+    optimizer = optimizers.Adam(lr=0.0005)
+    model.compile(loss='sparse_categorical_crossentropy', optimizer=optimizer)
 
 # Output the networks architecture
 print model.summary() 
