@@ -177,20 +177,20 @@ for index, sentence in enumerate(tokens[:100]):
 		if word[output_perplexity[index]] > 0:
 			perplexity_count += 1
 			perplexity += (math.log(word[output_perplexity[index]], 2))
-			print "perplexity calculation adds to perplexity variable :"
-			print "math.log(" + str(word[output_perplexity[index]]) + ", 2) = " + str((math.log(word[output_perplexity[index]], 2)))
+			#print "perplexity calculation adds to perplexity variable :"
+			#print "math.log(" + str(word[output_perplexity[index]]) + ", 2) = " + str((math.log(word[output_perplexity[index]], 2)))
 
 	# Calculate mean perplexity for the sentence
-	print "perplexity of the sentence is calculated by :"
-	print str(-perplexity) + " / " + str(perplexity_count) + " = " + str(-perplexity/perplexity_count)
+	#print "perplexity of the sentence is calculated by :"
+	#print str(-perplexity) + " / " + str(perplexity_count) + " = " + str(-perplexity/perplexity_count)
 	perplexity = -perplexity/perplexity_count
 	sentence_level_perplexity.append(int(2**(perplexity)))
-	print "final perplexity by 2^pp(w): " + str(int(2**(perplexity)))
+	#print "final perplexity by 2^pp(w): " + str(int(2**(perplexity)))
 	if int(2**(perplexity)) < 2000:
 		sentence_level_perplexity_filtered.append(int(2**(perplexity)))
 	else:
 		print "Sentence with very high perplexity:"
-		print cut_sentence
+		#print cut_sentence
 
 # Store the mean values of the replaced words
 mean_p_o = 0
@@ -343,38 +343,38 @@ print ""
 
 with open("./perplexity_unsupervised.txt", "a") as f:
 	content = fileName
-	content += ", Mean Probability of modified Words, " + str(mean_p_m)
-	content += ", Mean Probability of correct Words divided by unigram probability, " + str(mean_p_o_u)
-	content += ", Mean Probability of modified Words divided by unigram probability, " + str(mean_p_m_u)
-	content += ", Mean Position of the correct word compared to the other alternatives is, " + str(mean_position_o)
-	content += ", Mean Position of the modified word compared to the other alternatives is, " + str(mean_position_m)
-	content += ", Mean Perplexity of all Sequences, " + str(np.mean(sentence_level_perplexity))
-	content += ", Mean Perplexity filtered of all Sequences, " + str(np.mean(sentence_level_perplexity_filtered))
-	content += ", Median Perplexity of all Sequences, " + str(np.median(sentence_level_perplexity))
-	content += ", Modified words within most unlikely 100 words on dataset, " + str(modifications_in_lowest_100)
-	content += ", Modified words within most unlikely 500 words on dataset, " + str(modifications_in_lowest_500)
-	content += ", Modified words within most unlikely 1000 words on dataset, " + str(modifications_in_lowest_1000)
-	content += ", Modified words within most unlikely 4000 words on dataset, " + str(modifications_in_lowest_4000)
-	content += ", Modified words within most unlikely 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "), " + str(modifications_in_lowest_10_percent)
-	content += ", Modified words within most unlikely 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "), " + str(modifications_in_lowest_20_percent)
-	content += ", Modified words within most unlikely 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "), " + str(modifications_in_lowest_30_percent)
-	content += ", Modified words/unigram probability within most unlikely 100 words on dataset, " + str(unigram_modifications_in_lowest_100)
-	content += ", Modified words/unigram probability within most unlikely 500 words on dataset, " + str(unigram_modifications_in_lowest_500)
-	content += ", Modified words/unigram probability within most unlikely 1000 words on dataset, " + str(unigram_modifications_in_lowest_1000)
-	content += ", Modified words/unigram probability within most unlikely 4000 words on dataset, " + str(unigram_modifications_in_lowest_4000)
-	content += ", Modified words/unigram probability within most unlikely 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "), " + str(unigram_modifications_in_lowest_10_percent)
-	content += ", Modified words/unigram probability within most unlikely 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "), " + str(unigram_modifications_in_lowest_20_percent)
-	content += ", Modified words/unigram probability within most unlikely 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "), " + str(unigram_modifications_in_lowest_30_percent)
-	content += ", All modified words with positions: "
-	for element in all_positions_modified:
-		content += ", " + str(element)
+	#content += "; Mean Probability of modified Words, " + str(mean_p_m)
+	#content += "; Mean Probability of correct Words divided by unigram probability, " + str(mean_p_o_u)
+	#content += "; Mean Probability of modified Words divided by unigram probability, " + str(mean_p_m_u)
+	#content += "; Mean Position of the correct word compared to the other alternatives is, " + str(mean_position_o)
+	#content += "; Mean Position of the modified word compared to the other alternatives is, " + str(mean_position_m)
+	content += "; Mean Perplexity of all Sequences, " + str(np.mean(sentence_level_perplexity))
+	content += "; Mean Perplexity filtered of all Sequences, " + str(np.mean(sentence_level_perplexity_filtered))
+	content += "; Median Perplexity of all Sequences, " + str(np.median(sentence_level_perplexity))
+	#content += "; Modified words within most unlikely 100 words on dataset, " + str(modifications_in_lowest_100)
+	#content += "; Modified words within most unlikely 500 words on dataset, " + str(modifications_in_lowest_500)
+	#content += "; Modified words within most unlikely 1000 words on dataset, " + str(modifications_in_lowest_1000)
+	content += "; Modified words within most unlikely 4000 words on dataset, " + str(modifications_in_lowest_4000)
+	#content += "; Modified words within most unlikely 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "), " + str(modifications_in_lowest_10_percent)
+	#content += "; Modified words within most unlikely 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "), " + str(modifications_in_lowest_20_percent)
+	#content += "; Modified words within most unlikely 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "), " + str(modifications_in_lowest_30_percent)
+	#content += "; Modified words/unigram probability within most unlikely 100 words on dataset, " + str(unigram_modifications_in_lowest_100)
+	#content += "; Modified words/unigram probability within most unlikely 500 words on dataset, " + str(unigram_modifications_in_lowest_500)
+	#content += "; Modified words/unigram probability within most unlikely 1000 words on dataset, " + str(unigram_modifications_in_lowest_1000)
+	content += "; Modified words/unigram probability within most unlikely 4000 words on dataset, " + str(unigram_modifications_in_lowest_4000)
+	#content += "; Modified words/unigram probability within most unlikely 10 percent on dataset (" + str(len(all_words_probability_with_modified)/100*10) + "), " + str(unigram_modifications_in_lowest_10_percent)
+	#content += "; Modified words/unigram probability within most unlikely 20 percent on dataset (" + str(len(all_words_probability_with_modified)/100*20) + "), " + str(unigram_modifications_in_lowest_20_percent)
+	#content += "; Modified words/unigram probability within most unlikely 30 percent on dataset (" + str(len(all_words_probability_with_modified)/100*30) + "), " + str(unigram_modifications_in_lowest_30_percent)
+	#content += "; All modified words with positions: "
+	#for element in all_positions_modified:
+#		content += "; " + str(element)
 
-	content += ", Distribution of correct word relative to other words"
-	for element in classCount_o:
-		content += ", " + str(element)
-	content += ", Distribution of modified word relative to other words"
-	for element in classCount_m:
-		content += ", " + str(element)
+#	content += "; Distribution of correct word relative to other words"
+#	for element in classCount_o:
+#		content += "; " + str(element)
+#	content += "; Distribution of modified word relative to other words"
+#	for element in classCount_m:
+#		content += "; " + str(element)
 
 	f.write("{}\n".format(content))
 

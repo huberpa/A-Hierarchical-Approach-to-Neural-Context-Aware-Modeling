@@ -47,8 +47,6 @@ def createBatch(listing, batchSize):
 
 # Load files
 print "Reading network input data..."
-#with open (data_path+"/input_data.txt", 'r') as f:
-#	input_data = json.load(f)
 with open (data_path+"/index_to_word_eng.txt", 'r') as f:
 	index_to_word_eng = json.load(f)
 with open (data_path+"/word_to_index_eng.txt", 'r') as f:

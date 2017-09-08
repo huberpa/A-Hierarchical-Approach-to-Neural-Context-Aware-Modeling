@@ -19,7 +19,7 @@ batch_size = 200
 
 # Imports
 ##############################################
-#import tensorflow as tf 
+import tensorflow as tf 
 import numpy as np
 import json
 import os
@@ -32,35 +32,6 @@ sys.setdefaultencoding('utf-8')
 ##############################################
 
 
-
-# Open files
-print "Reading network input data..."
-with open (data_path+"/input_data.txt", 'r') as f:
-    encoder_input_data = json.load(f)
-with open (data_path+"/output_data.txt", 'r') as f:
-    decoder_data = json.load(f)
-with open (data_path+"/index_to_word_eng.txt", 'r') as f:
-    index_to_word_english = json.load(f)
-with open (data_path+"/index_to_word_ger.txt", 'r') as f:
-    index_to_word_german = json.load(f)
-
-for index1,element in enumerate(encoder_input_data):
-	ger_sentence = ""
-	eng_sentence = ""
-	for index2, word in enumerate(element):
-		if word != 0:
-			eng_sentence = eng_sentence + " " + index_to_word_english[str(encoder_input_data[index1][index2])]
-			ger_sentence = ger_sentence + " " + index_to_word_german[str(decoder_data[index1][index2])]
-
-	print eng_sentence
-	print "is translated into"
-	print ger_sentence
-
-	print ""
-	print ("*"*10)
-	print ""
-
-'''
 # Helper functions
 ##############################################
 def createBatch(listing, batchSize):
@@ -76,42 +47,33 @@ def softmax(x):
     return e_x / e_x.sum()
 ##############################################
 
-# TODO!
 
 # Main
 ##############################################
 
-# Load files
+# Open files
 print "Reading network input data..."
-with open (data_path+"/encoder_input_data.txt", 'r') as f:
-    encoder_input_data = json.load(f)
-with open (data_path+"/decoder_input_data.txt", 'r') as f:
-    decoder_input_data = json.load(f)
-with open (data_path+"/decoder_original_output_data.txt", 'r') as f:
-    decoder_original_output_data = json.load(f)
-with open (data_path+"/encoder_input_length.txt", 'r') as f:
-    encoder_input_length = json.load(f)
-with open (data_path+"/decoder_input_length.txt", 'r') as f:
-    decoder_input_length = json.load(f)
-with open (data_path+"/index_to_word.txt", 'r') as f:
-    index_to_word = json.load(f)
-with open (data_path+"/word_to_index.txt", 'r') as f:
-    word_to_index = json.load(f)
+with open (data_path+"/input_data.txt", 'r') as f:
+    encoder_data = json.load(f)
+with open (data_path+"/output_data.txt", 'r') as f:
+    decoder_data = json.load(f)
+with open (data_path+"/index_to_word_eng.txt", 'r') as f:
+    index_to_word_english = json.load(f)
+with open (data_path+"/index_to_word_ger.txt", 'r') as f:
+    index_to_word_german = json.load(f)	
 
 # Retrieve input variables from files
 print "Retrieve input variables from files..."
-enc_input_dimension = len(encoder_input_data[0][0])
-enc_timesteps_max = len(encoder_input_data[0])
-dec_timesteps_max = len(decoder_input_data[0])
-vocab_size = len(index_to_word)
+enc_timesteps_max = len(encoder_data[0])
+dec_timesteps_max = len(decoder_data[0])
+vocab_size = len(index_to_word_eng)
 
 # Split data into batches
 print "Split data into batches..."
-encoder_input_data_batch = createBatch(encoder_input_data, batch_size)
-decoder_input_data_batch = createBatch(decoder_input_data, batch_size)
-decoder_original_output_data_batch = createBatch(decoder_original_output_data, batch_size)
-encoder_input_length_batch = createBatch(encoder_input_length, batch_size)
-decoder_input_length_batch = createBatch(decoder_input_length, batch_size)
+encoder_input_data_batch = createBatch(encoder_data, batch_size)
+decoder_input_data_batch = createBatch(decoder_data, batch_size)
+encoder_length_batch = createBatch(enc_timesteps_max, batch_size)
+decoder_length_batch = createBatch(dec_timesteps_max, batch_size)
 
 # Unigram probabilities from training
 unigram_path  = open(training_path, "r")
