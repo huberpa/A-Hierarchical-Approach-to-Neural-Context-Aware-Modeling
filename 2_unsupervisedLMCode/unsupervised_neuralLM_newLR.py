@@ -9,7 +9,7 @@ parser.add_option('--layer_dim', action="store", dest="layer_dim", help="The num
 parser.add_option('--embedding_dim', action="store", dest="embedding_dim", help="The number of dimensions the embedding has  (default: 256)", default=256)
 parser.add_option('--batch_size', action="store", dest="batch_size", help="The batch size of the model (default: 100)", default=100)
 parser.add_option('--epochs', action="store", dest="epochs", help="The number of training epochs (default: 20)", default=20)
-parser.add_option('--vocabulary_size', action="store", dest="vocabulary_size", help="Size of the vocabulary (default: 50000)", default=50000)
+parser.add_option('--vocabulary_size', action="store", dest="vocabulary_size", help="Size of the vocabulary (default: 30000)", default=30000)
 parser.add_option('--unknown_token', action="store", dest="unknown_token", help="Token for words that are not in the vacabulary (default: <UNKWN>)", default="<UNKWN>")
 parser.add_option('--start_token', action="store", dest="start_token", help="Token for start (default: <START>)", default="<START>")
 parser.add_option('--end_token', action="store", dest="end_token", help="Token for end (default: <END>)", default="<END>")
