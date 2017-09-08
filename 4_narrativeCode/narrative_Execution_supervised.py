@@ -134,8 +134,6 @@ with open(data_path+"/tests/"+save_file+"_results.txt",'a') as f:
 	f.write("{}\n".format("Number of words modified and in results_modified: "+str(len(results_modified))))
 	f.write("{}\n".format("modifications_in_highest_4000: "+str(modifications_in_highest_4000)))
 	f.write("{}\n".format("Number of <UNKWN> words: "+str(unkwns_in_highest_4000)))
-	f.write("{}\n".format("---"))
-	f.write("{}\n".format(str(results_modified)))
 
 
 ##############################################
