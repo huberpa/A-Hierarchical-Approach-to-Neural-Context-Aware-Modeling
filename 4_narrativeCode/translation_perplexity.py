@@ -13,7 +13,7 @@ model_path = options.model_path
 data_path = options.data_path
 save_file = options.save_file
 training_path = options.unigram
-batch_size = 200
+batch_size = 1
 ##############################################
 
 
@@ -124,6 +124,8 @@ with tf.Session(config=session_config) as session:
 	
 	# Training
 	print "Start testing..."
+
+	print len(encoder_input_data_batch)
 
 	unigrams_not_found = 0
 	results = []
