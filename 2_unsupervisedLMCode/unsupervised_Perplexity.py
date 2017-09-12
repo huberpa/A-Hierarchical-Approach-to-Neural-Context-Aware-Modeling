@@ -76,7 +76,7 @@ sentence_level_perplexity_filtered = []
 words_not_in_vocab = 0
 all_words_probability_with_modified = []
 # Iterate through all the sentences in the data and compute the perplexity
-for index, sentence in enumerate(tokens[:100]):
+for index, sentence in enumerate(tokens):
 	value_sentence = []
 
 	# DEBUGGING output

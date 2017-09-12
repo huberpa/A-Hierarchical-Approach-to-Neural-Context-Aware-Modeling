@@ -109,6 +109,7 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 	tf.add_to_collection('variables_to_store', decoder_lengths)
 	tf.add_to_collection('variables_to_store', infer_output)
 	tf.add_to_collection('variables_to_store', start_token_infer)
+	tf.add_to_collection('variables_to_store', initial_state)
 
 	return (training_output, updates, loss, encoder_inputs, decoder_inputs, decoder_outputs, masking, encoder_lengths, decoder_lengths, infer_output, start_token_infer)
 

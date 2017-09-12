@@ -44,36 +44,24 @@ sys.setdefaultencoding('utf-8')
 print "Loading English file..."
 english_talks = []
 english_words = []
-english_path  = open(data_path+"/train.tags.en-de.en", "r")
-english_text = english_path.read()
-englishFile = parseString(english_text)
-english_documents=englishFile.getElementsByTagName('doc')
-for document in english_documents:
-	content=document.getElementsByTagName('content')
-	for talk in content:
-		node_value = talk.childNodes[0].nodeValue
-		splitted_talk = node_value.split('\n')
-		for line in splitted_talk:
-			if len(line) > 1:
-				english_talks.append(nltk.word_tokenize(line))
-				english_words = english_words + nltk.word_tokenize(line)
+english_path  = open(data_path+"/translation_training_english.txt", "r")
+english_text = english_path.read().decode('utf8')
+splitted_talk = english_text.split('\n')
+for line in splitted_talk:
+	if len(line) > 1:
+		english_talks.append(nltk.word_tokenize(line))
+		english_words = english_words + nltk.word_tokenize(line)
 
 print "Loading German file..."
 german_talks = []
 german_words = []
-german_path  = open(data_path+"/train.tags.en-de.de", "r")
-german_text = german_path.read()
-germanFile = parseString(german_text)
-german_documents=germanFile.getElementsByTagName('doc')
-for document in german_documents:
-	content=document.getElementsByTagName('content')
-	for talk in content:
-		node_value = talk.childNodes[0].nodeValue
-		splitted_talk = node_value.split('\n')
-		for line in splitted_talk:
-			if len(line) > 1:
-				german_talks.append(nltk.word_tokenize(line))
-				german_words = german_words + nltk.word_tokenize(line)
+german_path  = open(data_path+"/translation_training_german.txt", "r")
+german_text = german_path.read().decode('utf8')
+splitted_talk = german_text.split('\n')
+for line in splitted_talk:
+	if len(line) > 1:
+		german_talks.append(nltk.word_tokenize(line))
+		german_words = german_words + nltk.word_tokenize(line)
 
 print "Loading monoligual data..."
 mono_path  = open(mono_path, "r")
@@ -173,3 +161,4 @@ if not os.path.exists(save_path+"/"+model_name+"/index_to_word_ger.txt"):
 		json.dump(index_to_word_german, f)
 
 print "Preprocessing finished..."
+

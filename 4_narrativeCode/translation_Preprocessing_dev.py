@@ -42,7 +42,7 @@ sys.setdefaultencoding('utf-8')
 # Load files
 print "Loading English file..."
 english_talks = []
-english_path  = open(data_path+"/dev_en.xml", "r")
+english_path  = open(data_path+"/test_en.xml", "r")
 english_text = english_path.read()
 englishFile = parseString(english_text)
 english_documents=englishFile.getElementsByTagName('doc')
@@ -55,7 +55,7 @@ for document in english_documents:
 
 print "Loading German file..."
 german_talks = []
-german_path  = open(data_path+"/dev_de.xml", "r")
+german_path  = open(data_path+"/test_de.xml", "r")
 german_text = german_path.read()
 germanFile = parseString(german_text)
 german_documents=germanFile.getElementsByTagName('doc')
