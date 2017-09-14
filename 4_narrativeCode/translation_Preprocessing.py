@@ -31,6 +31,7 @@ import os
 from collections import Counter
 import datetime
 import sys
+import pickle
 from keras.preprocessing import sequence as kerasSequence
 import nltk
 reload(sys)  
@@ -45,7 +46,7 @@ print "Loading English file..."
 english_talks = []
 english_words = []
 english_path  = open(data_path+"/translation_training_english.txt", "r")
-english_text = english_path.read().decode('utf8')
+english_text = english_path.read().decode('unicode_escape')
 splitted_talk = english_text.split('\n')
 for line in splitted_talk:
 	if len(line) > 1:
@@ -56,7 +57,7 @@ print "Loading German file..."
 german_talks = []
 german_words = []
 german_path  = open(data_path+"/translation_training_german.txt", "r")
-german_text = german_path.read().decode('utf8')
+german_text = german_path.read().decode('unicode_escape')
 splitted_talk = german_text.split('\n')
 for line in splitted_talk:
 	if len(line) > 1:
@@ -65,7 +66,7 @@ for line in splitted_talk:
 
 print "Loading monoligual data..."
 mono_path  = open(mono_path, "r")
-mono_text = mono_path.read().decode('utf8')
+mono_text = mono_path.read().decode('unicode_escape')
 mono_words = nltk.word_tokenize(mono_text)
 mono_words = [word.lower() for word in mono_words]
 
@@ -138,27 +139,27 @@ if not os.path.exists(save_path+"/"+model_name):
 
 if not os.path.exists(save_path+"/"+model_name+"/input_data.txt"):
 	with open(save_path+"/"+model_name+"/input_data.txt",'w') as f:
-		json.dump(pad_input_Words.tolist(), f)
+		pickle.dump(pad_input_Words.tolist(), f)
 
 if not os.path.exists(save_path+"/"+model_name+"/output_data.txt"):
 	with open(save_path+"/"+model_name+"/output_data.txt",'w') as f:
-		json.dump(pad_output_Words.tolist(), f)
+		pickle.dump(pad_output_Words.tolist(), f)
 
 if not os.path.exists(save_path+"/"+model_name+"/word_to_index_eng.txt"):
 	with open(save_path+"/"+model_name+"/word_to_index_eng.txt",'w') as f:
-		json.dump(word_to_index_english, f)
+		pickle.dump(word_to_index_english, f)
 
 if not os.path.exists(save_path+"/"+model_name+"/index_to_word_eng.txt"):
 	with open(save_path+"/"+model_name+"/index_to_word_eng.txt",'w') as f:
-		json.dump(index_to_word_english, f)
+		pickle.dump(index_to_word_english, f)
 
 if not os.path.exists(save_path+"/"+model_name+"/word_to_index_ger.txt"):
 	with open(save_path+"/"+model_name+"/word_to_index_ger.txt",'w') as f:
-		json.dump(word_to_index_german, f)
+		pickle.dump(word_to_index_german, f)
 
 if not os.path.exists(save_path+"/"+model_name+"/index_to_word_ger.txt"):
 	with open(save_path+"/"+model_name+"/index_to_word_ger.txt",'w') as f:
-		json.dump(index_to_word_german, f)
+		pickle.dump(index_to_word_german, f)
 
 print "Preprocessing finished..."
 

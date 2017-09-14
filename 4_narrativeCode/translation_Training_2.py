@@ -79,19 +79,20 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 		embeddings_dec = tf.Variable(tf.random_uniform([dec_input_dimension, embedding_size], -1.0, 1.0), dtype=tf.float32)
 		decoder_inputs_embedded = tf.nn.embedding_lookup(embeddings_dec, decoder_inputs)
 
-	final_layer = layers_core.Dense(units=dec_input_dimension, name="Output_layer")
-	with variable_scope.variable_scope("RNN_decoder"):
-		helper = tf.contrib.seq2seq.TrainingHelper(decoder_inputs_embedded, decoder_lengths)
-		decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, initial_state, output_layer=final_layer)
-		outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, maximum_iterations=dec_timesteps_max)
-		training_output = outputs.rnn_output
-		print training_output.shape
+	lstm_output,state = tf.nn.dynamic_rnn(decoder_cell, decoder_inputs_embedded, sequence_length=decoder_lengths, initial_state=initial_state, scope = "RNN_decoder")
 
-		helper_infer = tf.contrib.seq2seq.GreedyEmbeddingHelper(embeddings_dec, start_token_infer, end_of_sequence_id)
-		decoder_infer = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper_infer, initial_state, output_layer=final_layer)
-		outputs_infer, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder_infer, maximum_iterations=dec_timesteps_max)
-		infer_output = outputs_infer.sample_id
-		print infer_output.shape
+	with variable_scope.variable_scope("Output_layer"):
+		transp = tf.transpose(lstm_output, [1, 0, 2])
+		lstm_output_unpacked = tf.unstack(transp)
+		for index, item in enumerate(lstm_output_unpacked):
+			if index == 0:
+				logits = tf.layers.dense(inputs=item, units=vocab_size, name="output_dense")
+			if index > 0:
+				logits = tf.layers.dense(inputs=item, units=vocab_size, name="output_dense", reuse=True)
+			outputs.append(logits)
+		tensor_output = tf.stack(values=outputs, axis=0)
+		forward = tf.transpose(tensor_output, [1, 0, 2])
+
 
 	# Training
 	with variable_scope.variable_scope("Backpropagation"):
@@ -99,7 +100,7 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 		updates = tf.train.AdamOptimizer(5e-4).minimize(loss)
 
 	# Store variables for further training or execution
-	tf.add_to_collection('variables_to_store', training_output)
+	tf.add_to_collection('variables_to_store', forward)
 	tf.add_to_collection('variables_to_store', updates)
 	tf.add_to_collection('variables_to_store', loss)
 	tf.add_to_collection('variables_to_store', encoder_inputs)
@@ -108,11 +109,9 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 	tf.add_to_collection('variables_to_store', masking)
 	tf.add_to_collection('variables_to_store', encoder_lengths)
 	tf.add_to_collection('variables_to_store', decoder_lengths)
-	tf.add_to_collection('variables_to_store', infer_output)
-	tf.add_to_collection('variables_to_store', start_token_infer)
 	tf.add_to_collection('variables_to_store', initial_state)
 
-	return (training_output, updates, loss, encoder_inputs, decoder_inputs, decoder_outputs, masking, encoder_lengths, decoder_lengths, infer_output, start_token_infer)
+	return (forward, updates, loss, encoder_inputs, decoder_inputs, decoder_outputs, masking, encoder_lengths, decoder_lengths, initial_state)
 
 def softmax(x):
 	e_x = np.exp(x - np.max(x))
@@ -205,7 +204,7 @@ decoder_mask_batch = createBatch(decoder_mask, batch_size)
 
 # Create computational graph
 print "Create computational graph..."
-train_out, updates, loss, enc_in, dec_in, dec_out, mask, enc_len, dec_len, inf_out, start_token_infer = seq2seq(enc_input_dimension=enc_dimension, enc_timesteps_max=enc_timesteps_max, dec_timesteps_max=dec_timesteps_max, hidden_units=hidden_dimensions, hidden_layers=nb_hidden_layers, embedding_size=embedding_size, dec_input_dimension=dec_dimension, start_of_sequence_id=start_of_sequence_id, end_of_sequence_id=end_of_sequence_id)
+forward, updates, loss, enc_in, dec_in, dec_out, mask, enc_len, dec_len, hidden_layer = seq2seq(enc_input_dimension=enc_dimension, enc_timesteps_max=enc_timesteps_max, dec_timesteps_max=dec_timesteps_max, hidden_units=hidden_dimensions, hidden_layers=nb_hidden_layers, embedding_size=embedding_size, dec_input_dimension=dec_dimension, start_of_sequence_id=start_of_sequence_id, end_of_sequence_id=end_of_sequence_id)
 
 # Launch the graph
 print "Launch the graph..."
@@ -254,23 +253,4 @@ with tf.Session(config=session_config) as session:
 
 	print "Training finished..."
 ##############################################
-'''
-	encoder_input_data_batch_infer = createBatch(encoder_input_data, batch_size_inference)
-	encoder_input_length_batch_infer = createBatch(encoder_length, batch_size_inference)
-	decoder_input_length_batch_infer = createBatch(decoder_length, batch_size_inference)
-
-	feed = {}
-	feed["encoder_inputs"] = encoder_input_data_batch_infer[5]
-	feed["encoder_length"] = encoder_input_length_batch_infer[5]
-	feed["decoder_length"] = decoder_input_length_batch_infer[5]
-	feed["start_token_infer"] = [start_of_sequence_id]*batch_size_inference
-
-	test_output = session.run(inf_out, feed_dict={enc_in:feed["encoder_inputs"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"], start_token_infer: feed["start_token_infer"]})
-	print test_output
-	test_sentence = ""
-	for batch in test_output.tolist():
-		for word in batch:
-			test_sentence = test_sentence + index_to_word_german[str(word)]
-	print test_sentence
-	'''
 # END
