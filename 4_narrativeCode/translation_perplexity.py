@@ -129,7 +129,9 @@ with tf.Session(config=session_config) as session:
 
 	unigrams_not_found = 0
 	results = []
-	perplexity_results = []
+	perplexity = 0.
+	perplexity_count = 0
+
 	for batch_index,_ in enumerate(encoder_input_data_batch):
 		feed = {}
 		feed["encoder_inputs"] = encoder_input_data_batch[batch_index]
@@ -141,8 +143,6 @@ with tf.Session(config=session_config) as session:
 		result_raw.tolist()
 
 		for idx1, sentence in enumerate(result_raw):
-			perplexity = 0
-			perplexity_count = 0
 			for idx2, word in enumerate(sentence):
 				word = softmax(word)
 
@@ -154,14 +154,14 @@ with tf.Session(config=session_config) as session:
 
 				if idx2 < len(sentence)-1:
 					perplexity_count += 1
-					perplexity += (math.log(word[decoder_output_data_batch[batch_index][idx1][idx2]], 2))
+					if word[decoder_output_data_batch[batch_index][idx1][idx2]] > 0.:
+						perplexity += (math.log(word[decoder_output_data_batch[batch_index][idx1][idx2]], 2))
 
-			perplexity = -perplexity/perplexity_count
-			perplexity_results.append(int(2**(perplexity)))
+	perplexity = -perplexity/perplexity_count
+	sentence_level_perplexity.append(int(2**(perplexity)))
 
 with open(data_path+"/tests/"+save_file+"_results.txt", "a") as f:	
-	f.write("{}\n".format("Average sentence perplexity: "+str(np.mean(perplexity_results))))
-	f.write("{}\n".format("Median sentence perplexity: "+str(np.median(perplexity_results))))
+	f.write("{}\n".format("Average sentence perplexity: "+str(sentence_level_perplexity)))
 
 ##############################################
 

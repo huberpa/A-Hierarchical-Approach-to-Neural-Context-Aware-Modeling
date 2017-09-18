@@ -31,7 +31,6 @@ import os
 from collections import Counter
 import datetime
 import sys
-import pickle
 from keras.preprocessing import sequence as kerasSequence
 import nltk
 reload(sys)  
@@ -127,8 +126,14 @@ for index, sentence in enumerate(german_talks):
 
 # Pad the sequences with zeros
 print "Padding sequences with zeros..."
-pad_input_Words = kerasSequence.pad_sequences(english_talks, maxlen=timesteps, padding='post', value=0)
-pad_output_Words = kerasSequence.pad_sequences(german_talks, maxlen=timesteps, padding='post', value=0)
+pad_input_Words = []
+pad_output_Words = []
+
+for english_talk in english_talks:
+	pad_input_Words.append(english_talk + [0]*(timesteps-len(english_talk)))
+
+for german_talk in german_talks:
+	pad_output_Words.append(german_talk + [0]*(timesteps-len(german_talk)))
 
 print "Save preprocessed data into files..."
 if not os.path.exists(save_path):
@@ -139,27 +144,27 @@ if not os.path.exists(save_path+"/"+model_name):
 
 if not os.path.exists(save_path+"/"+model_name+"/input_data.txt"):
 	with open(save_path+"/"+model_name+"/input_data.txt",'w') as f:
-		pickle.dump(pad_input_Words.tolist(), f)
+		json.dump(pad_input_Words, f)
 
 if not os.path.exists(save_path+"/"+model_name+"/output_data.txt"):
 	with open(save_path+"/"+model_name+"/output_data.txt",'w') as f:
-		pickle.dump(pad_output_Words.tolist(), f)
+		json.dump(pad_output_Words, f)
 
 if not os.path.exists(save_path+"/"+model_name+"/word_to_index_eng.txt"):
 	with open(save_path+"/"+model_name+"/word_to_index_eng.txt",'w') as f:
-		pickle.dump(word_to_index_english, f)
+		json.dump(word_to_index_english, f)
 
 if not os.path.exists(save_path+"/"+model_name+"/index_to_word_eng.txt"):
 	with open(save_path+"/"+model_name+"/index_to_word_eng.txt",'w') as f:
-		pickle.dump(index_to_word_english, f)
+		json.dump(index_to_word_english, f)
 
 if not os.path.exists(save_path+"/"+model_name+"/word_to_index_ger.txt"):
 	with open(save_path+"/"+model_name+"/word_to_index_ger.txt",'w') as f:
-		pickle.dump(word_to_index_german, f)
+		json.dump(word_to_index_german, f)
 
 if not os.path.exists(save_path+"/"+model_name+"/index_to_word_ger.txt"):
 	with open(save_path+"/"+model_name+"/index_to_word_ger.txt",'w') as f:
-		pickle.dump(index_to_word_german, f)
+		json.dump(index_to_word_german, f)
 
 print "Preprocessing finished..."
 

@@ -133,17 +133,17 @@ def createBatch(listing, batchSize):
 # Open files
 print "Reading network input data..."
 with open (data_path+"/input_data.txt", 'r') as f:
-    encoder_input_data = pickle.load(f)
+    encoder_input_data = json.load(f)
 with open (data_path+"/output_data.txt", 'r') as f:
-    decoder_data = pickle.load(f)
+    decoder_data = json.load(f)
 with open (data_path+"/word_to_index_eng.txt", 'r') as f:
-    word_to_index_english = pickle.load(f)
+    word_to_index_english = json.load(f)
 with open (data_path+"/index_to_word_eng.txt", 'r') as f:
-    index_to_word_english = pickle.load(f)
+    index_to_word_english = json.load(f)
 with open (data_path+"/word_to_index_ger.txt", 'r') as f:
-    word_to_index_german = pickle.load(f)
+    word_to_index_german = json.load(f)
 with open (data_path+"/index_to_word_ger.txt", 'r') as f:
-    index_to_word_german = pickle.load(f)
+    index_to_word_german = json.load(f)
 
 
 # Variables for the network definition

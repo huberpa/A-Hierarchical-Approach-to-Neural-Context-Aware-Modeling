@@ -91,6 +91,13 @@ with open(save_path+"/"+model_name+"_english.txt", "w") as f:
 	for element in english_talks:
 		f.write("{}\n".format(element))
 
+#with open(save_path+"/"+model_name+"_english.txt", "w") as f:
+#		json.dump(english_talks, f)
+
 with open(save_path+"/"+model_name+"_german.txt", "w") as f:	
 	for element in german_talks:
 		f.write("{}\n".format(element))
+
+#with open(save_path+"/"+model_name+"_german.txt", "w") as f:
+#		json.dump(german_talks, f)
+

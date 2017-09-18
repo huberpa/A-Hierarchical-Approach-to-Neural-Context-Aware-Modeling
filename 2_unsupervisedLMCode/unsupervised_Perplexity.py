@@ -28,6 +28,7 @@ import numpy as np
 import json
 import math
 import os
+import numpy as np
 import nltk
 ##############################################
 
@@ -75,6 +76,17 @@ sentence_level_perplexity = []
 sentence_level_perplexity_filtered = []
 words_not_in_vocab = 0
 all_words_probability_with_modified = []
+
+perplexity = np.float128(0.0)
+perplexity_count = 0
+
+for sentence in tokens:
+	# For the start token
+	perplexity_count += 1
+	for word in sentence:
+		perplexity_count += 1
+
+
 # Iterate through all the sentences in the data and compute the perplexity
 for index, sentence in enumerate(tokens):
 	value_sentence = []
@@ -122,8 +134,6 @@ for index, sentence in enumerate(tokens):
 	prediction = model.predict(testInput, verbose=0)[0]
 
 	# Evaluate the prediction
-	perplexity = 0.
-	perplexity_count = 0
 	for index, word in enumerate(prediction):
 
 		# Add the probability of the correct output word to thw array (! This will be overwritten if the word is a modified one !)
@@ -174,23 +184,23 @@ for index, sentence in enumerate(tokens):
 				except Exception:
 					words_not_in_vocab += 1
 
-		if word[output_perplexity[index]] > 0:
-			perplexity_count += 1
+		print "word probability:"
+		print word[output_perplexity[index]]
+		print "latest perplexity:"
+		print perplexity
+		print type(perplexity)
+		if word[output_perplexity[index]] > 0.0:
 			perplexity += (math.log(word[output_perplexity[index]], 2))
-			#print "perplexity calculation adds to perplexity variable :"
-			#print "math.log(" + str(word[output_perplexity[index]]) + ", 2) = " + str((math.log(word[output_perplexity[index]], 2)))
+		#print "perplexity calculation adds to perplexity variable :"
+		#print "math.log(" + str(word[output_perplexity[index]]) + ", 2) = " + str((math.log(word[output_perplexity[index]], 2)))
 
-	# Calculate mean perplexity for the sentence
-	#print "perplexity of the sentence is calculated by :"
-	#print str(-perplexity) + " / " + str(perplexity_count) + " = " + str(-perplexity/perplexity_count)
-	perplexity = -perplexity/perplexity_count
-	sentence_level_perplexity.append(int(2**(perplexity)))
-	#print "final perplexity by 2^pp(w): " + str(int(2**(perplexity)))
-	if int(2**(perplexity)) < 2000:
-		sentence_level_perplexity_filtered.append(int(2**(perplexity)))
-	else:
-		print "Sentence with very high perplexity:"
-		#print cut_sentence
+# Calculate mean perplexity for the sentence
+#print "perplexity of the sentence is calculated by :"
+#print str(-perplexity) + " / " + str(perplexity_count) + " = " + str(-perplexity/perplexity_count)
+perplexity = -perplexity/perplexity_count
+sentence_level_perplexity.append(int(2**(perplexity)))
+#print "final perplexity by 2^pp(w): " + str(int(2**(perplexity)))
+
 
 # Store the mean values of the replaced words
 mean_p_o = 0
@@ -337,20 +347,17 @@ print "Distribution of correct word relative to other words in " + str(classes) 
 print classCount_o
 print "Distribution of modified word relative to other words in " + str(classes) + " classes: "
 print classCount_m
-print "Mean Perplexity of all Sequences: " + str(np.mean(sentence_level_perplexity))
-print "Median Perplexity of all Sequences: " + str(np.median(sentence_level_perplexity))
+print "Perplexity of all Sequences: " + str(sentence_level_perplexity)
 print ""
 
-with open("./perplexity_unsupervised.txt", "a") as f:
+with open("./perplexity_unsupervised_changed_calcun.txt", "a") as f:
 	content = fileName
 	#content += "; Mean Probability of modified Words, " + str(mean_p_m)
 	#content += "; Mean Probability of correct Words divided by unigram probability, " + str(mean_p_o_u)
 	#content += "; Mean Probability of modified Words divided by unigram probability, " + str(mean_p_m_u)
 	#content += "; Mean Position of the correct word compared to the other alternatives is, " + str(mean_position_o)
 	#content += "; Mean Position of the modified word compared to the other alternatives is, " + str(mean_position_m)
-	content += "; Mean Perplexity of all Sequences, " + str(np.mean(sentence_level_perplexity))
-	content += "; Mean Perplexity filtered of all Sequences, " + str(np.mean(sentence_level_perplexity_filtered))
-	content += "; Median Perplexity of all Sequences, " + str(np.median(sentence_level_perplexity))
+	content += "; Mean Perplexity of all Sequences, " + str(sentence_level_perplexity)
 	#content += "; Modified words within most unlikely 100 words on dataset, " + str(modifications_in_lowest_100)
 	#content += "; Modified words within most unlikely 500 words on dataset, " + str(modifications_in_lowest_500)
 	#content += "; Modified words within most unlikely 1000 words on dataset, " + str(modifications_in_lowest_1000)
