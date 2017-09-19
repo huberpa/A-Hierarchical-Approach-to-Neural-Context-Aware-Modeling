@@ -131,7 +131,7 @@ with tf.Session(config=session_config) as session:
 	results = []
 	perplexity = 0.
 	perplexity_count = 0
-
+	sentence_level_perplexity = []
 	for batch_index,_ in enumerate(encoder_input_data_batch):
 		feed = {}
 		feed["encoder_inputs"] = encoder_input_data_batch[batch_index]

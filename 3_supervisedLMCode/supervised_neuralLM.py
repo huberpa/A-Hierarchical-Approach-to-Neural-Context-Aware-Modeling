@@ -5,8 +5,8 @@ import optparse
 parser = optparse.OptionParser()
 parser.add_option('--dataset', action="store", dest="dataset", help="Choose the dataset to train on [PRD,DEV] (default: PRD)", default="PRD")
 parser.add_option('--layers', action="store", dest="layers", help="The number of hidden layers in the model (default: 1)", default=1)
-parser.add_option('--layer_dim', action="store", dest="layer_dim", help="The number of neurons in the hidden layer(s)  (default: 128)", default=128)
-parser.add_option('--embedding_dim', action="store", dest="embedding_dim", help="The number of dimensions the embedding has  (default: 300)", default=300)
+parser.add_option('--layer_dim', action="store", dest="layer_dim", help="The number of neurons in the hidden layer(s)  (default: 512)", default=512)
+parser.add_option('--embedding_dim', action="store", dest="embedding_dim", help="The number of dimensions the embedding has  (default: 256)", default=256)
 parser.add_option('--batch_size', action="store", dest="batch_size", help="The batch size of the model (default: 100)", default=100)
 parser.add_option('--epochs', action="store", dest="epochs", help="The number of training epochs (default: 25)", default=25)
 parser.add_option('--vocabulary_size', action="store", dest="vocabulary_size", help="Size of the vocabulary (default: 30000)", default=30000)
@@ -16,6 +16,7 @@ parser.add_option('--end_token', action="store", dest="end_token", help="Token f
 parser.add_option('--save_path', action="store", dest="save_path", help="The path to save the folders (logging, models etc.)  (default: .)", default=".")
 parser.add_option('--continue_version', action="store", dest="continue_version", help="Continue to learn a already started model (default: 0)", default=0)
 parser.add_option('--starting_epoch', action="store", dest="starting_epoch", help="Continue learning with this epoch (default: 1)", default=1)
+parser.add_option('--lr', action="store", dest="lr", help="Learning rate (default: 1e-3)", default="1e-3")
 options, args = parser.parse_args()
 nb_hidden_layers = int(options.layers)
 hidden_dimensions= int(options.layer_dim)
@@ -32,6 +33,7 @@ vocabulary_size = int(options.vocabulary_size)
 unknown_token = options.unknown_token
 start_token = options.start_token
 end_token = options.end_token
+learning_rate = float(options.lr)
 dataset = options.dataset
 if dataset == "DEV":
     training_data = "./../tedData/sets/development/indicated_development_texts.txt"
@@ -48,6 +50,7 @@ from keras.layers import Dense, Activation, Embedding, LSTM
 from keras.preprocessing import sequence as kerasSequence
 from keras.layers.wrappers import TimeDistributed
 from collections import Counter
+from keras import optimizers
 import numpy as np
 import random
 import sys
@@ -205,7 +208,9 @@ else:
         print "add LSTM layer...."
         model.add(LSTM(units=hidden_dimensions, return_sequences=True))
     model.add(TimeDistributed(Dense(1, activation='sigmoid')))
-    model.compile(loss='binary_crossentropy', optimizer="adam")
+    optimizer = optimizers.Adam(lr=learning_rate)
+
+    model.compile(loss='binary_crossentropy', optimizer=optimizer)
 
 # Output the networks architecture
 print model.summary() 

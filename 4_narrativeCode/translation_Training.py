@@ -11,6 +11,7 @@ parser.add_option('--epochs', action="store", dest="epochs", help="The number of
 parser.add_option('--pre_path', action="store", dest="pre_path", help="The path to the preprocessed data folder (default: .)", default=".")
 parser.add_option('--save_path', action="store", dest="save_path", help="The path to the monolingual data folder (default: .)", default=".")
 parser.add_option('--name', action="store", dest="name", help="The name of the model (default: model)", default="model")
+parser.add_option('--lr', action="store", dest="lr", help="The learning rate of the model (default: 5e-4)", default="5e-4")
 
 options, args = parser.parse_args()
 embedding_size = int(options.embedding_size)
@@ -21,6 +22,7 @@ epochs = int(options.epochs)
 data_path = options.pre_path
 model_name = options.name
 save_path = options.save_path
+learning_rate = float(options.lr)
 batch_size_inference = 1
 ##############################################
 
@@ -96,7 +98,7 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 	# Training
 	with variable_scope.variable_scope("Backpropagation"):
 		loss = tf.contrib.seq2seq.sequence_loss(targets=decoder_outputs, logits=training_output, weights=masking)
-		updates = tf.train.AdamOptimizer(5e-4).minimize(loss)
+		updates = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
 	# Store variables for further training or execution
 	tf.add_to_collection('variables_to_store', training_output)
