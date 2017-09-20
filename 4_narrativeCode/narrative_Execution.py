@@ -106,6 +106,9 @@ with tf.Session(config=session_config) as session:
 	unigrams_not_found = 0
 	results = []
 	perplexity_results = []
+	perplexity = 0
+	perplexity_count = 0
+
 	for batch_index,_ in enumerate(encoder_input_data_batch):
 		feed = {}
 		feed["encoder_inputs"] = encoder_input_data_batch[batch_index]
@@ -117,8 +120,6 @@ with tf.Session(config=session_config) as session:
 		result_raw.tolist()
 
 		for idx1, sentence in enumerate(result_raw):
-			perplexity = 0
-			perplexity_count = 0
 			for idx2, word in enumerate(sentence):
 				word_modified = 0
 				word_probabilities = softmax(word)
@@ -136,14 +137,15 @@ with tf.Session(config=session_config) as session:
 
 				word_index = word_to_index[checkedword] if checkedword in word_to_index else word_to_index["<UNKWN>"]
 				if original_word != "<PAD>":
+					perplexity_count += 1
 					if original_word != "<UNKWN>":
 						if word_probabilities[word_index] > 0:
-							perplexity_count += 1
 							perplexity += (math.log(word_probabilities[word_index], 2))
 						results.append([str(word_probabilities[word_index]), str((word_probabilities[word_index]*len(u_words))/count_unigram), word_modified, original_word])
 			
-			perplexity = -perplexity/perplexity_count
-			perplexity_results.append(int(2**(perplexity)))
+
+	perplexity = -perplexity/perplexity_count
+	perplexity_results.append(int(2**(perplexity)))
 
 	with open(data_path+"/tests/"+save_file+"_word_probability.txt",'a') as f:
 		json.dump(results, f)
@@ -195,8 +197,7 @@ with open(data_path+"/tests/"+save_file+"_results.txt", "a") as f:
 	f.write("{}\n".format("Number of words modified and in results_modified / unigram: "+str(len(results_modified))))
 	f.write("{}\n".format("modifications_in_lowest_4000 / unigram: "+str(modifications_in_lowest_4000)))
 	f.write("{}\n".format("Number of <UNKWN> words: "+str(unkwns_in_lowest_4000)))
-	f.write("{}\n".format("Average sentence perplexity: "+str(np.mean(perplexity_results))))
-	f.write("{}\n".format("Median sentence perplexity: "+str(np.median(perplexity_results))))
+	f.write("{}\n".format("Average sentence perplexity: "+str(perplexity_results)))
 
 ##############################################
 
