@@ -27,14 +27,17 @@ if corpus == "PRD":
 
 # Imports
 ##############################################
-from keras.models import Sequential, load_model
-from keras.layers import Dense, Activation, Embedding, LSTM
+import tensorflow as tf
 import numpy as np
 import nltk
 import os
 import json
 import copy
 ##############################################
+
+def softmax(x):
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum()
 
 # Main
 ##############################################
@@ -43,14 +46,15 @@ import copy
 print "Reading sentence log data..."
 path  = open(sentence_log, "r")
 sentence_logging_text = path.read().decode('utf8')
-parameters = json.loads(sentence_logging_text[:sentence_logging_text.find("}")+1].replace("'","\""))
-embedding_size = int(parameters['embedding_dim'])
-nb_hidden_layers = int(parameters['layers'])
-hidden_dimensions = int(parameters['layer_dim'])
-start_token = parameters['start_token']
-end_token = parameters['end_token']
-unknown_token = parameters['unknown_token']
+print sentence_logging_text[sentence_logging_text.find("{"):sentence_logging_text.find("}")+1].replace("'","\"")
+parameters = json.loads(sentence_logging_text[sentence_logging_text.find("{"):sentence_logging_text.find("}")+1].replace("'","\""))
 
+embedding_size = int(parameters['embedding_size'])
+nb_hidden_layers = int(parameters['layer_number'])
+hidden_dimensions = int(parameters['layer_dimension'])
+start_token = "<START>"
+end_token = "<END>"
+unknown_token = "<UNKWN>"
 
 # Open the training dataset
 print "Reading training data..."
@@ -60,21 +64,11 @@ train = path.read().decode('utf8')
 # Open the sentence index_to_word and word_to_index
 print "Reading sentence vocab data..."
 word_to_index = []
-with open(sentence_vocab + "/word_to_index.json") as f:    
+with open(sentence_vocab + "/word_to_index_eng.txt") as f:    
 	word_to_index = json.load(f)
 index_to_word = []
-with open(sentence_vocab + "/index_to_word.json") as f:    
+with open(sentence_vocab + "/index_to_word_eng.txt") as f:    
 	index_to_word = json.load(f)
-
-# Open the model to create the sentence embeddings
-sentenceModel = load_model(sentence_model)
-newSentenceModel = Sequential()
-newSentenceModel.add(Embedding(input_dim=len(word_to_index), output_dim=embedding_size, mask_zero=True, weights=sentenceModel.layers[0].get_weights()))
-for layerNumber in range(0, nb_hidden_layers):
-    print "add LSTM layer...."
-    newSentenceModel.add(LSTM(units=hidden_dimensions, return_sequences=True, weights=sentenceModel.layers[layerNumber+1].get_weights()))
-newSentenceModel.compile(loss='sparse_categorical_crossentropy', optimizer="adam")
-
 
 # Split the text in talks, sentences and words --> tokens[#talks][#sentence][#word]
 print "Tokenizing file..."
@@ -97,47 +91,70 @@ for index, talk in enumerate(plain_talks):
 	for idx, sentence in enumerate(sentences): 
 	    talks[index][idx] = nltk.word_tokenize(sentence.lower())
 
-# Transform text into 3d tensor with indizes and sentence embeddings
-print "Calculate sentence embeddings..."
-talks_numerified = []
-talks_original = []
-talk_sentence_embedding = []
-talk_maxLength = 0 # 518 for PRD
-for index0, talk in enumerate(talks):
-	if len(talk) > talk_maxLength:
-		talk_maxLength = len(talk)
-	talks_numerified.append([])
-	talk_sentence_embedding.append([])
-	talks_original.append([])
+# Launch the graph
+print "Launch the graph..."
+session_config = tf.ConfigProto(allow_soft_placement=True)    
+session_config.gpu_options.per_process_gpu_memory_fraction = 0.90
+with tf.Session(config=session_config) as session:
+	tf.train.import_meta_graph(sentence_model + ".meta").restore(session, sentence_model)
+	variables = tf.get_collection('variables_to_store')
 
-	for index1, sentence in enumerate(talk):
-		talks_numerified[index0].append([])
-		talks_original[index0].append([])
-		
-		talks_numerified[index0][index1].append(word_to_index[start_token])
-		talks_original[index0][index1].append(start_token)
+	# Transform text into 3d tensor with indizes and sentence embeddings
+	print "Calculate sentence embeddings..."
+	talks_numerified = []
+	talks_original = []
+	talk_sentence_embedding = []
+	talk_maxLength = 0 # 518 for PRD
+	for index0, talk in enumerate(talks[:1]):
+		if len(talk) > talk_maxLength:
+			talk_maxLength = len(talk)
+		talks_numerified.append([])
+		talk_sentence_embedding.append([])
+		talks_original.append([])
 
-		for index2, word in enumerate(sentence):
-			checkedWord = ""
-			if word.find("___") == -1:
-				checkedWord = word
-			else:
-				checkedWord = word[word.find("___")+3:word.rfind("___")]
+		for index1, sentence in enumerate(talk[:1]):
+			talks_numerified[index0].append([])
+			talks_original[index0].append([])
+			
+			talks_numerified[index0][index1].append(word_to_index[start_token])
+			talks_original[index0][index1].append(start_token)
 
-			talks_numerified[index0][index1].append(word_to_index[checkedWord] if checkedWord in word_to_index else word_to_index[unknown_token])
-			talks_original[index0][index1].append(word if checkedWord in word_to_index else unknown_token)
+			for index2, word in enumerate(sentence):
+				checkedWord = ""
+				if word.find("___") == -1:
+					checkedWord = word
+				else:
+					checkedWord = word[word.find("___")+3:word.rfind("___")]
 
-		talks_numerified[index0][index1].append(word_to_index[end_token])
-		talks_original[index0][index1].append(end_token)
+				talks_numerified[index0][index1].append(word_to_index[checkedWord] if checkedWord in word_to_index else word_to_index[unknown_token])
+				talks_original[index0][index1].append(word if checkedWord in word_to_index else unknown_token)
 
-		trainInput = np.zeros((1, len(talks_numerified[index0][index1])), dtype=np.int16)
-		for index, idx in enumerate(talks_numerified[index0][index1]):
-			trainInput[0, index] = idx
-		talk_sentence_embedding[index0].append(newSentenceModel.predict(trainInput, verbose=0)[0][-1]) # Has shape (#nb_talks, #talk_length(nb_sentences), #hidden_state_neurons)
+			talks_numerified[index0][index1].append(word_to_index[end_token])
+			talks_original[index0][index1].append(end_token)
 
-for index, talk in enumerate(talk_sentence_embedding):
-	for index2, sentence in enumerate(talk):
-		talk_sentence_embedding[index][index2] = talk_sentence_embedding[index][index2].tolist()
+			trainInput = np.zeros((1, 100), dtype=np.int16)
+			for index, idx in enumerate(talks_numerified[index0][index1]):
+				trainInput[0, index] = idx
+
+			test_result = session.run(variables[11], feed_dict={variables[3]:trainInput, variables[7]: [len(trainInput)
+				]})
+			test_result.tolist()
+			print "Test result [0]:"
+			print test_result[0]
+			print "Test result [0][0]:"
+			print test_result[0][0]
+			print "Test result [0][1]:"
+			print test_result[0][1]
+			print "Test result [0][-1]:"
+			print test_result[0][-1]
+
+			#TODOOOOOOOOOOOOOOOOO --> GET LAST STATE ONLY
+
+			talk_sentence_embedding[index0].append(test_result)
+
+	for index, talk in enumerate(talk_sentence_embedding):
+		for index2, sentence in enumerate(talk):
+			talk_sentence_embedding[index][index2] = talk_sentence_embedding[index][index2].tolist()
 
 
 # Shape input and output in proper shapes

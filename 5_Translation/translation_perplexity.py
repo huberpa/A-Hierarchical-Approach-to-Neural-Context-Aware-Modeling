@@ -5,14 +5,13 @@ import optparse
 parser = optparse.OptionParser()
 parser.add_option('--model_path', action="store", dest="model_path", help="The path to the model file (default: '')", default="")
 parser.add_option('--data_path', action="store", dest="data_path", help="The path to the dev or test data that should be tested on, including index_to_word and word_to_index (default: .)", default=".")
-parser.add_option('-u', '--unigram', action="store", dest="unigram", help="relative path to the dataset that was trained on (default: .)", default=".")
 parser.add_option('--save_file', action="store", dest="save_file", help="path to the file where the results should be stored (default: .)", default=".")
 
 options, args = parser.parse_args()
 model_path = options.model_path
 data_path = options.data_path
 save_file = options.save_file
-training_path = options.unigram
+
 batch_size = 1
 ##############################################
 
@@ -103,15 +102,6 @@ decoder_output_data_batch = createBatch(decoder_output_data, batch_size)
 encoder_length_batch = createBatch(encoder_length, batch_size)
 decoder_length_batch = createBatch(decoder_length, batch_size)
 
-# Unigram probabilities from training
-unigram_path  = open(training_path, "r")
-unigram_text = unigram_path.read().decode('utf8')
-u_words = nltk.word_tokenize(unigram_text)
-u_words = [word.lower() for word in u_words]
-wordcount = Counter(u_words)
-wordUnigram = sorted(wordcount.items(), key=lambda item: item[1])
-unigrams = dict((word, count) for word, count in wordUnigram)
-
 # Launch the graph
 print "Launch the graph..."
 session_config = tf.ConfigProto(allow_soft_placement=True)    
@@ -121,13 +111,9 @@ with tf.Session(config=session_config) as session:
 
 	tf.train.import_meta_graph(model_path + ".meta").restore(session, model_path)
 	variables = tf.get_collection('variables_to_store')
-	
+
 	# Training
 	print "Start testing..."
-
-	print len(encoder_input_data_batch)
-
-	unigrams_not_found = 0
 	results = []
 	perplexity = 0.
 	perplexity_count = 0
@@ -146,12 +132,7 @@ with tf.Session(config=session_config) as session:
 			for idx2, word in enumerate(sentence):
 				word = softmax(word)
 
-				count_unigram = 1
-				try:
-					count_unigram = unigrams[str(word)]
-				except Exception:
-					unigrams_not_found += 1
-
+				
 				if idx2 < len(sentence)-1:
 					perplexity_count += 1
 					if word[decoder_output_data_batch[batch_index][idx1][idx2]] > 0.:
@@ -162,6 +143,5 @@ with tf.Session(config=session_config) as session:
 
 with open(data_path+"/tests/"+save_file+"_results.txt", "a") as f:	
 	f.write("{}\n".format("Average sentence perplexity: "+str(sentence_level_perplexity)))
-
 ##############################################
 

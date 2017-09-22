@@ -93,7 +93,6 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 		decoder_infer = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper_infer, initial_state, output_layer=final_layer)
 		outputs_infer, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder_infer, maximum_iterations=dec_timesteps_max)
 		infer_output = outputs_infer.sample_id
-		print infer_output.shape
 
 	# Training
 	with variable_scope.variable_scope("Backpropagation"):
@@ -112,7 +111,8 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 	tf.add_to_collection('variables_to_store', decoder_lengths)
 	tf.add_to_collection('variables_to_store', infer_output)
 	tf.add_to_collection('variables_to_store', start_token_infer)
-	tf.add_to_collection('variables_to_store', initial_state)
+	tf.add_to_collection('variables_to_store', initial_state.c)
+	tf.add_to_collection('variables_to_store', initial_state.h)
 
 	return (training_output, updates, loss, encoder_inputs, decoder_inputs, decoder_outputs, masking, encoder_lengths, decoder_lengths, infer_output, start_token_infer)
 
@@ -256,23 +256,4 @@ with tf.Session(config=session_config) as session:
 
 	print "Training finished..."
 ##############################################
-'''
-	encoder_input_data_batch_infer = createBatch(encoder_input_data, batch_size_inference)
-	encoder_input_length_batch_infer = createBatch(encoder_length, batch_size_inference)
-	decoder_input_length_batch_infer = createBatch(decoder_length, batch_size_inference)
-
-	feed = {}
-	feed["encoder_inputs"] = encoder_input_data_batch_infer[5]
-	feed["encoder_length"] = encoder_input_length_batch_infer[5]
-	feed["decoder_length"] = decoder_input_length_batch_infer[5]
-	feed["start_token_infer"] = [start_of_sequence_id]*batch_size_inference
-
-	test_output = session.run(inf_out, feed_dict={enc_in:feed["encoder_inputs"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"], start_token_infer: feed["start_token_infer"]})
-	print test_output
-	test_sentence = ""
-	for batch in test_output.tolist():
-		for word in batch:
-			test_sentence = test_sentence + index_to_word_german[str(word)]
-	print test_sentence
-	'''
 # END
