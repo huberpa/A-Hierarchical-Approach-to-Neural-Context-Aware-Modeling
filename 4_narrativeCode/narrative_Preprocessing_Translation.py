@@ -4,6 +4,7 @@
 import optparse
 parser = optparse.OptionParser()
 parser.add_option('--sentence_forecast', action="store", dest="sentence_forecast", help="The number of past sentence that are taken into account (default: 10)", default=10)
+parser.add_option('--embedding_sentence_length', action="store", dest="embedding_sentence_length", help="The maximal length for encoder inputs (default: 100)", default=100)
 parser.add_option('--sentence_max_length', action="store", dest="sentence_max_length", help="The maximal sentence length for decoder inputs (default: 50)", default=50)
 parser.add_option('--sentence_model', action="store", dest="sentence_model", help="The path to the sentence embeddings model (default: .)", default=".")
 parser.add_option('--sentence_vocab', action="store", dest="sentence_vocab", help="The path to the sentence embeddings vocabulary (default: .)", default=".")
@@ -16,6 +17,7 @@ sentence_model = options.sentence_model
 sentence_vocab = options.sentence_vocab
 sentence_log = options.sentence_log
 save_path = options.save_path
+embedding_sentence_length = int(options.embedding_sentence_length)
 max_sentence_length = int(options.sentence_max_length)
 max_sentence_forecast = int(options.sentence_forecast)
 corpus = options.corpus
@@ -105,14 +107,14 @@ with tf.Session(config=session_config) as session:
 	talks_original = []
 	talk_sentence_embedding = []
 	talk_maxLength = 0 # 518 for PRD
-	for index0, talk in enumerate(talks[:1]):
+	for index0, talk in enumerate(talks):
 		if len(talk) > talk_maxLength:
 			talk_maxLength = len(talk)
 		talks_numerified.append([])
 		talk_sentence_embedding.append([])
 		talks_original.append([])
 
-		for index1, sentence in enumerate(talk[:1]):
+		for index1, sentence in enumerate(talk):
 			talks_numerified[index0].append([])
 			talks_original[index0].append([])
 			
@@ -132,25 +134,15 @@ with tf.Session(config=session_config) as session:
 			talks_numerified[index0][index1].append(word_to_index[end_token])
 			talks_original[index0][index1].append(end_token)
 
-			trainInput = np.zeros((1, 100), dtype=np.int16)
-			for index, idx in enumerate(talks_numerified[index0][index1]):
+			trainInput = np.zeros((1, embedding_sentence_length), dtype=np.int16)
+			for index, idx in enumerate(talks_numerified[index0][index1][:embedding_sentence_length]):
 				trainInput[0, index] = idx
 
 			test_result = session.run(variables[11], feed_dict={variables[3]:trainInput, variables[7]: [len(trainInput)
 				]})
 			test_result.tolist()
-			print "Test result [0]:"
-			print test_result[0]
-			print "Test result [0][0]:"
-			print test_result[0][0]
-			print "Test result [0][1]:"
-			print test_result[0][1]
-			print "Test result [0][-1]:"
-			print test_result[0][-1]
-
-			#TODOOOOOOOOOOOOOOOOO --> GET LAST STATE ONLY
-
-			talk_sentence_embedding[index0].append(test_result)
+			sentence_encoding = test_result[0]
+			talk_sentence_embedding[index0].append(sentence_encoding)
 
 	for index, talk in enumerate(talk_sentence_embedding):
 		for index2, sentence in enumerate(talk):
