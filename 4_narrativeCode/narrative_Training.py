@@ -166,7 +166,7 @@ with tf.Session(config=session_config) as session:
 	session.run(tf.global_variables_initializer())
 	saver = tf.train.Saver(max_to_keep=None)
 	writer = tf.summary.FileWriter(".", graph=tf.get_default_graph())
-	
+	'''
 	# Training
 	print "Start training..."
 
@@ -218,5 +218,5 @@ with tf.Session(config=session_config) as session:
 
 print "Training finished..."
 ##############################################
-
+'''
 # END

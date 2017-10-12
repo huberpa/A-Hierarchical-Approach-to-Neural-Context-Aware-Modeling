@@ -159,23 +159,7 @@ training_decoder_original_output_data = []
 
 print "Create network input shape..."
 for index1, talk in enumerate(talk_sentence_embedding):
-
-	# The first sentence with no history 
 	training_encoder_input_talk = []
-	training_encoder_input_data.append(copy.copy(training_encoder_input_talk))
-	training_decoder_input_talk = talks_numerified[index1][0]
-	training_decoder_output_talk = talks_numerified[index1][0]
-	training_decoder_original_output_talk = talks_original[index1][0]
-	if len(training_decoder_input_talk) > max_sentence_length:
-		training_decoder_input_talk = training_decoder_input_talk[:max_sentence_length+1]
-		training_decoder_output_talk = training_decoder_output_talk[:max_sentence_length+1]
-		training_decoder_original_output_talk = training_decoder_original_output_talk[:max_sentence_length+1]
-	training_decoder_input_talk = training_decoder_input_talk[:len(training_decoder_input_talk)-1]
-	training_decoder_output_talk = training_decoder_output_talk[1:]
-	training_decoder_original_output_talk = training_decoder_original_output_talk[1:]
-	training_decoder_input_data.append(training_decoder_input_talk)
-	training_decoder_output_data.append(training_decoder_output_talk)
-	training_decoder_original_output_data.append(training_decoder_original_output_talk)
 
 	# From sentence 2 ... n
 	for index2, sentence_Embedding in enumerate(talk[:len(talk)-1]):

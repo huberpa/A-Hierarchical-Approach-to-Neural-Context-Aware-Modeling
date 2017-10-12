@@ -120,17 +120,34 @@ for element in results:
 #Sort all the probabilities to find modified words
 trueResults.sort(key=lambda row: row[1], reverse=True)
 results_modified = []
+nb_changed_words_high_prob = 0
+nb_words_high_prob = 0
+nb_changed_words = 0
 modifications_in_highest_4000 = 0
 unkwns_in_highest_4000 = 0
 for idx, element in enumerate(trueResults):
+	if element[1] > 0.5:
+			nb_words_high_prob += 1
 	if element[3] == "<UNKWN>":
 		unkwns_in_highest_4000 += 1
 	if element[2] == 1:
+		nb_changed_words += 1
+		if element[1] > 0.5:
+			nb_changed_words_high_prob += 1
 		results_modified.append([idx, element[3], element[0], element[1]])
 		if idx <= 4000:
 			modifications_in_highest_4000 += 1
 
+
+precision = float(nb_changed_words_high_prob) / float(nb_words_high_prob)
+recall = float(nb_changed_words_high_prob) / float(nb_changed_words)
+
+# Output the results
 with open(data_path+"/tests/"+save_file+"_results.txt",'a') as f:
+	f.write("{}\n".format("System Precision: " + str(precision)))
+	f.write("{}\n".format("System Recall: " + str(recall)))
+	if (precision+recall) != 0:
+		f.write("{}\n".format("System F1-Score: " + str(2*((precision*recall)/(precision+recall)))))
 	f.write("{}\n".format("Number of words modified and in results_modified: "+str(len(results_modified))))
 	f.write("{}\n".format("modifications_in_highest_4000: "+str(modifications_in_highest_4000)))
 	f.write("{}\n".format("Number of <UNKWN> words: "+str(unkwns_in_highest_4000)))

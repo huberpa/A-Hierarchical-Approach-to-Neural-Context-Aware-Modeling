@@ -7,9 +7,11 @@ parser.add_option('--embedding_size', action="store", dest="embedding_size", hel
 parser.add_option('--layer_number', action="store", dest="layer_number", help="The number of hidden layers in the model (default: 1)", default=1)
 parser.add_option('--layer_dimension', action="store", dest="layer_dimension", help="The number of neurons in the hidden layer(s)  (default: 512)", default=512)
 parser.add_option('--batch_size', action="store", dest="batch_size", help="The batch size of the model (default: 100)", default=100)
-parser.add_option('--epochs', action="store", dest="epochs", help="The number of training epochs (default: 20)", default=20)
+parser.add_option('--epochs', action="store", dest="epochs", help="The number of training epochs (default: 25)", default=25)
 parser.add_option('--data_path', action="store", dest="data_path", help="The path to the data folder (default: .)", default=".")
 parser.add_option('--name', action="store", dest="name", help="The name of the model (default: model)", default="model")
+parser.add_option('--lr', action="store", dest="lr", help="The model's learning rate (default: 1e-3)", default="1e-3")
+
 options, args = parser.parse_args()
 embedding_size = int(options.embedding_size)
 nb_hidden_layers = int(options.layer_number)
@@ -18,6 +20,7 @@ batch_size = int(options.batch_size)
 epochs = int(options.epochs)
 data_path = options.data_path
 model_name = options.name
+learning_rate = float(options.lr)
 ##############################################
 
 
@@ -85,7 +88,7 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_timesteps_max,hidden_units
 	# Training
 	with variable_scope.variable_scope("Backpropagation"):
 		loss = tf.contrib.seq2seq.sequence_loss(targets=decoder_outputs, logits=forward, weights=masking)
-		updates = tf.train.AdamOptimizer().minimize(loss)
+		updates = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
 	# Store variables for further training or execution
 	tf.add_to_collection('variables_to_store', forward_output)

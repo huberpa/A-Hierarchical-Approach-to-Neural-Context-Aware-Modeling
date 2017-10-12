@@ -8,7 +8,7 @@ parser.add_option('--sentence_max_length', action="store", dest="sentence_max_le
 parser.add_option('--sentence_model', action="store", dest="sentence_model", help="The path to the sentence embeddings model(default: .)", default=".")
 parser.add_option('--sentence_vocab', action="store", dest="sentence_vocab", help="The path to the sentence embeddings vocabulary(default: .)", default=".")
 parser.add_option('--sentence_log', action="store", dest="sentence_log", help="The path to the sentence embeddings logfiles(default: .)", default=".")
-parser.add_option('--corpus', action="store", dest="corpus", help="The corpus that should be used (PRD or DEV)  (default: PRD)", default="PRD")
+parser.add_option('--corpus', action="store", dest="corpus", help="The corpus that should be used (PRD or DEV or TEST)  (default: PRD)", default="PRD")
 parser.add_option('--save_path', action="store", dest="save_path", help="The path to save the folders (logging, models etc.)  (default: .)", default=".")
 
 options, args = parser.parse_args()
@@ -21,6 +21,8 @@ max_sentence_forecast = int(options.sentence_forecast)
 corpus = options.corpus
 if corpus == "DEV":
     supervised_text = "./../tedData/sets/development/talkseperated_indicated_development_texts.txt"
+if corpus == "TEST":
+    supervised_text = "./../tedData/sets/test/talkseperated_indicated_test_texts.txt"
 if corpus == "PRD":
     supervised_text = "./../tedData/sets/training/talkseperated_indicated_training_texts.txt"
     
@@ -130,11 +132,6 @@ for index0, talk in enumerate(talks):
 				proofWord = word[word.find("___")+3:word.rfind("___")]
 			talks_numerified[index0][index1].append(word_to_index[proofWord] if proofWord in word_to_index else word_to_index[unknown_token])
 			
-			print "DEBUG OUTPUT:::"
-			print talks_numerified[index0]
-			print classToken[index0]
-
-'''
 		talks_numerified[index0][index1].append(word_to_index[end_token])
 		classToken[index0][index1].append(0)
 		trainInput = np.zeros((1, len(talks_numerified[index0][index1])), dtype=np.int16)
@@ -257,4 +254,4 @@ if not os.path.exists(save_path+"/index_to_word.txt"):
 		json.dump(index_to_word, f)
 
 print "Preprocessing finished..."
-'''
+
