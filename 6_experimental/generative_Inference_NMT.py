@@ -6,7 +6,7 @@ parser = optparse.OptionParser()
 parser.add_option('--story_file', action="store", dest="story_file", help="File with the start of a story to be continued (default: ./story.txt)", default="./story.txt")
 parser.add_option('--network_path', action="store", dest="network_path", help="The path to the network file (default: '.')", default=".")
 parser.add_option('--data_path', action="store", dest="data_path", help="The path to the word index relation (default: '.')", default=".")
-parser.add_option('--sentence_enc_path', action="store", dest="sentence_enc_path", help="The path to the baseline model for the sentence embedding - NEEDS TO BE A KERAS MODEL (Gen 8, 1e-3) (default: '.')", default=".")
+parser.add_option('--sentence_enc_path', action="store", dest="sentence_enc_path", help="The path to the baseline model for the sentence embedding - NEEDS TO BE A TENSORFLOW MODEL (Gen 8, 5e-4) (default: '.')", default=".")
 parser.add_option('--sentence_log', action="store", dest="sentence_log", help="The path to the sentence embeddings logfiles (default: .)", default=".")
 parser.add_option('--max_sentence_embeddings', action="store", dest="max_sentence_embeddings", help="The number of previous sentences that are taken into account to compute the next sentence (default: 5)", default="5")
 parser.add_option('--nr_sentences', action="store", dest="nr_sentences", help="The number of new sentence to create (default: 10)", default="10")
@@ -55,12 +55,12 @@ with open (story_file, 'r') as f:
 
 sentence_logging_text = open(sentence_log, "r").read()
 parameters = json.loads(sentence_logging_text[sentence_logging_text.find("{"):sentence_logging_text.find("}")+1].replace("'","\""))
-embedding_size = int(parameters['embedding_dim'])
-nb_hidden_layers = int(parameters['layers'])
-hidden_dimensions = int(parameters['layer_dim'])
-start_token = parameters['start_token']
-end_token = parameters['end_token']
-unknown_token = parameters['unknown_token']
+embedding_size = int(parameters['embedding_size'])
+nb_hidden_layers = int(parameters['layer_number'])
+hidden_dimensions = int(parameters['layer_dimension'])
+start_token = "<START>"
+end_token = "<END>"
+unknown_token = "<UNKWN>"
 
 word_story = []
 sentence_embeddings = []
@@ -72,40 +72,44 @@ for index1, sentence in enumerate(word_story):
 		word_story[index1][index2] = word_to_index[word] if word in word_to_index else word_to_index["<UNKWN>"]
 
 
-
-# GET THE SENTENCE REP NOW FOR THE START --> WORD_STORY NOT NEEDED AFTER
-sentenceModel = load_model(sentence_enc_path)
-newSentenceModel = Sequential()
-newSentenceModel.add(Embedding(input_dim=len(word_to_index), output_dim=embedding_size, mask_zero=True, weights=sentenceModel.layers[0].get_weights()))
-for layerNumber in range(0, nb_hidden_layers):
-	#print "add LSTM layer...."
-	newSentenceModel.add(LSTM(units=hidden_dimensions, return_sequences=True, weights=sentenceModel.layers[layerNumber+1].get_weights()))
-newSentenceModel.compile(loss='sparse_categorical_crossentropy', optimizer="adam")
-
 for sentence in word_story:
-	trainInput = np.zeros((1, len(sentence)), dtype=np.int16)
-	for index, word in enumerate(sentence):
-		trainInput[0, index] = word
-	sentence_embeddings.append(newSentenceModel.predict(trainInput, verbose=0)[0][-1].tolist())
-
-with open("./createdStory.txt", "w") as f:
-	f.write(story)
-	print story
-for _ in range (0, number_sentences):
-
-	encoder_length = len(sentence_embeddings)
-	decoder_length = 100
-	empty = [0]*512
-	sentence_input = copy.copy(sentence_embeddings)
-	for _ in range(0, 10-len(sentence_embeddings)):
-		sentence_input.append(empty)
-
-	#print "Launch the graph..."
 	session_config = tf.ConfigProto(allow_soft_placement=True)    
 	session_config.gpu_options.per_process_gpu_memory_fraction = 0.90
-	with tf.Session(config=session_config) as session:
+
+	graph = tf.Graph()
+	session = tf.Session(config=session_config, graph=graph)
+	with graph.as_default():
+		tf.train.import_meta_graph(sentence_enc_path + ".meta").restore(session, sentence_enc_path)
+		variables = tf.get_collection('variables_to_store')
+		
+		inputs = sentence
+		len_inputs = len(inputs)
+
+		for _ in range(0,(100-len(sentence))):
+			inputs.append(0)
+
+		sentence_embeddings.append(session.run(variables[11], feed_dict={variables[3]:[inputs], variables[7]: [len_inputs]}).tolist()[0])
+
+with open("./createdStoryNMT.txt", "w") as f:
+	f.write(story)
+	print story
+
+for _ in range (0, number_sentences):
+
+	session_config = tf.ConfigProto(allow_soft_placement=True)    
+	session_config.gpu_options.per_process_gpu_memory_fraction = 0.90
+	graph = tf.Graph()
+	session = tf.Session(config=session_config, graph=graph)
+	with graph.as_default():
 		tf.train.import_meta_graph(model_path + ".meta").restore(session, model_path)
 		variables = tf.get_collection('variables_to_store')
+
+		encoder_length = len(sentence_embeddings)
+		decoder_length = 100
+		empty = [0]*512
+		sentence_input = copy.copy(sentence_embeddings)
+		for _ in range(0, 10-len(sentence_embeddings)):
+			sentence_input.append(empty)
 
 		#print "Start Creating..."
 		feed = {}
@@ -120,21 +124,28 @@ for _ in range (0, number_sentences):
 			if word != 0:
 				sentence_output += [index_to_word[str(word)]]
 
-		#save in file
-		with open(save, "a") as f:
-			string_sentence = ""
-			for element in sentence_output[:-1]:
-				string_sentence += " " + element	
-			print string_sentence
-			f.write(string_sentence)
+	#save in file
+	with open(save, "a") as f:
+		string_sentence = "HAHAHAHAHAHAHHAHHAAHHHAHA"
+		for element in sentence_output[:-1]:
+			string_sentence += " " + element	
+		f.write(string_sentence)
 
-	trainInput = np.zeros((1, len(output)+1), dtype=np.int16)
-	trainInput[0, 0] = word_to_index["<START>"]
-	for index, word in enumerate(output):
-		trainInput[0, index+1] = word
-	sentence_embeddings.append(newSentenceModel.predict(trainInput, verbose=0)[0][-1].tolist())
+	graph = tf.Graph()
+	session = tf.Session(config=session_config, graph=graph)
+	with graph.as_default():
+		tf.train.import_meta_graph(sentence_enc_path + ".meta").restore(session, sentence_enc_path)
+		variables = tf.get_collection('variables_to_store')
+		
+		inputs = output.tolist()
+		len_inputs = len(output)+1
+
+		for _ in range(0,(100-len(output))):
+			inputs.append(0)
+
+		sentence_embeddings.append(session.run(variables[11], feed_dict={variables[3]:[inputs], variables[7]: [len_inputs]}).tolist()[0])
+
 	if len(sentence_embeddings) > max_sentence_embeddings:
 		sentence_embeddings = sentence_embeddings[1:]
-
+print "done"
 ##############################################
-

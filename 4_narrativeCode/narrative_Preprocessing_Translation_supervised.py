@@ -138,7 +138,13 @@ with tf.Session(config=session_config) as session:
 			for index, idx in enumerate(talks_numerified[index0][index1][:embedding_sentence_length]):
 				trainInput[0, index] = idx
 
-			test_result = session.run(variables[11], feed_dict={variables[3]:trainInput, variables[7]: [len(trainInput)]})
+			inp_length = 0
+			for element in trainInput.tolist():
+				for element2 in element:
+					if element2 != 0:
+						inp_length += 1
+
+			test_result = session.run(variables[11], feed_dict={variables[3]:trainInput, variables[7]: [inp_length]})
 			test_result.tolist()
 			sentence_encoding = test_result[0]
 			talk_sentence_embedding[index0].append(sentence_encoding)
