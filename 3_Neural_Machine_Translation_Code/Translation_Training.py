@@ -30,6 +30,7 @@ batch_size_inference = 1
 # Imports
 ##############################################
 import tensorflow as tf 
+from random import shuffle 
 from tensorflow.python.layers import core as layers_core
 from tensorflow.python.framework import dtypes
 from tensorflow.python.ops import variable_scope
@@ -61,12 +62,20 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 	start_token_infer = tf.placeholder(dtypes.int32, shape=[None], name="start_token_infer")
 
 	# Cells
-	encoder_cell = single_cell_enc = tf.contrib.rnn.LSTMCell(hidden_units)
+
+	encoder_cell = tf.contrib.rnn.LSTMCell(hidden_units)
 	if hidden_layers > 1:
-		encoder_cell = tf.contrib.rnn.MultiRNNCell([single_cell_enc] * hidden_layers)
+		stacked_rnn = []
+		for layer in range(hidden_layers):
+			stacked_rnn.append(tf.contrib.rnn.LSTMCell(hidden_units))
+		encoder_cell = tf.contrib.rnn.MultiRNNCell(cells=stacked_rnn)
+
 	decoder_cell = single_cell_dec = tf.contrib.rnn.LSTMCell(hidden_units)
 	if hidden_layers > 1:
-		decoder_cell = tf.contrib.rnn.MultiRNNCell([single_cell_dec] * hidden_layers)
+		stacked_rnn = []
+		for layer in range(hidden_layers):
+			stacked_rnn.append(tf.contrib.rnn.LSTMCell(hidden_units))
+		decoder_cell = tf.contrib.rnn.MultiRNNCell(cells=stacked_rnn)
 
 	# Seq2Seq		
 	# Encoder
@@ -75,6 +84,8 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 		encoder_inputs_embedded = tf.nn.embedding_lookup(embeddings_enc, encoder_inputs)
 
 	_, initial_state = tf.nn.dynamic_rnn(encoder_cell, encoder_inputs_embedded, sequence_length=encoder_lengths, dtype=tf.float32, scope = "RNN_encoder")
+#	_, initial_state = tf.nn.bidirectional_dynamic_rnn(cell_fw =encoder_cell, cell_bw =encoder_cell, inputs=encoder_inputs_embedded, sequence_length=encoder_lengths, dtype=tf.float32, scope = "RNN_encoder")
+
 
 	# Decoder
 	with variable_scope.variable_scope("Decoder_embedding_layer"):
@@ -87,7 +98,7 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 		decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, initial_state, output_layer=final_layer)
 		outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, maximum_iterations=dec_timesteps_max)
 		training_output = outputs.rnn_output
-		print training_output.shape
+		#training_output = tf.nn.dropout(training_output, 0.8)
 
 		helper_infer = tf.contrib.seq2seq.GreedyEmbeddingHelper(embeddings_dec, start_token_infer, end_of_sequence_id)
 		decoder_infer = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper_infer, initial_state, output_layer=final_layer)
@@ -111,8 +122,13 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 	tf.add_to_collection('variables_to_store', decoder_lengths)
 	tf.add_to_collection('variables_to_store', infer_output)
 	tf.add_to_collection('variables_to_store', start_token_infer)
+	#if len(initial_state < 2):
 	tf.add_to_collection('variables_to_store', initial_state.c)
 	tf.add_to_collection('variables_to_store', initial_state.h)
+	#else:
+	#	for element in initial_state:
+	#		tf.add_to_collection('variables_to_store', element.c)
+	#		tf.add_to_collection('variables_to_store', element.h)
 
 	return (training_output, updates, loss, encoder_inputs, decoder_inputs, decoder_outputs, masking, encoder_lengths, decoder_lengths, infer_output, start_token_infer)
 
@@ -230,11 +246,16 @@ with tf.Session(config=session_config) as session:
 		f.write("{}\n".format(""))
 		f.write("{}\n".format("Training started with: " + str(options)))
 
+	# Put all inputs in one datastructure to be able to shuffle
+	data = zip(encoder_input_data_batch, encoder_input_length_batch, decoder_input_data_batch, decoder_input_length_batch, decoder_output_data_batch, decoder_mask_batch)
+
 	for epoch in range(epochs):
 		print "epoch " + str(epoch+1) + " / " + str(epochs)
 		with open(save_path+'/models/'+model_name+"/log.txt",'a') as f:
 			f.write("{}\n".format("epoch " + str(epoch+1) + " / " + str(epochs) + " " + str(datetime.datetime.now())))
 
+		shuffle(data)
+		
 		for batch_index,_ in enumerate(encoder_input_data_batch):
 
 			print "----batch " + str(batch_index+1) + " / " + str(len(encoder_input_data_batch))
@@ -242,12 +263,12 @@ with tf.Session(config=session_config) as session:
 				f.write("{}\n".format("batch " + str(batch_index+1) + " / " + str(len(encoder_input_data_batch)) + " " + str(datetime.datetime.now())))
 
 			feed = {}
-			feed["encoder_inputs"] = encoder_input_data_batch[batch_index]
-			feed["encoder_length"] = encoder_input_length_batch[batch_index]
-			feed["decoder_inputs"] = decoder_input_data_batch[batch_index]
-			feed["decoder_length"] = decoder_input_length_batch[batch_index]
-			feed["decoder_outputs"] = decoder_output_data_batch[batch_index]
-			feed["mask"] = decoder_mask_batch[batch_index]
+			feed["encoder_inputs"] = data[batch_index][0]
+			feed["encoder_length"] = data[batch_index][1]
+			feed["decoder_inputs"] = data[batch_index][2]
+			feed["decoder_length"] = data[batch_index][3]
+			feed["decoder_outputs"] = data[batch_index][4]
+			feed["mask"] = data[batch_index][5]
 
 			training_output = session.run([updates, loss], feed_dict={enc_in:feed["encoder_inputs"], dec_in:feed["decoder_inputs"], dec_out: feed["decoder_outputs"], mask: feed["mask"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"]})
 
@@ -257,3 +278,4 @@ with tf.Session(config=session_config) as session:
 	print "Training finished..."
 ##############################################
 # END
+

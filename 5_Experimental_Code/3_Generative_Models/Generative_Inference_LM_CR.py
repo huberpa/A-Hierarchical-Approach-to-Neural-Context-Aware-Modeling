@@ -54,7 +54,7 @@ with open (story_file, 'r') as f:
 	story = f.read()
 
 sentence_logging_text = open(sentence_log, "r").read()
-parameters = json.loads(sentence_logging_text[sentence_logging_text.find("{"):sentence_logging_text.find("}")+1].replace("'","\""))
+parameters = json.loads(sentence_logging_text[:sentence_logging_text.find("}")+1].replace("'","\""))
 embedding_size = int(parameters['embedding_dim'])
 nb_hidden_layers = int(parameters['layers'])
 hidden_dimensions = int(parameters['layer_dim'])
@@ -71,8 +71,6 @@ for index1, sentence in enumerate(word_story):
 	for index2, word in enumerate(sentence):
 		word_story[index1][index2] = word_to_index[word] if word in word_to_index else word_to_index["<UNKWN>"]
 
-
-
 # GET THE SENTENCE REP NOW FOR THE START --> WORD_STORY NOT NEEDED AFTER
 sentenceModel = load_model(sentence_enc_path)
 newSentenceModel = Sequential()
@@ -88,9 +86,15 @@ for sentence in word_story:
 		trainInput[0, index] = word
 	sentence_embeddings.append(newSentenceModel.predict(trainInput, verbose=0)[0][-1].tolist())
 
+writeout = ""
+for sentence in nltk.sent_tokenize(story):
+	for word in nltk.word_tokenize(sentence.lower()):
+		writeout += " " + str(index_to_word[str(word_to_index[word])] if word in word_to_index else index_to_word[str(word_to_index["<UNKWN>"])])
+
+
 with open("./createdStory.txt", "w") as f:
-	f.write(story)
-	print story
+	f.write(writeout)
+	print writeout
 for _ in range (0, number_sentences):
 
 	encoder_length = len(sentence_embeddings)

@@ -3,7 +3,7 @@
 ##############################################
 import optparse
 parser = optparse.OptionParser()
-parser.add_option('--input', action="store", dest="input", help="Sentences to be checked by the model (default: what do you really see when you look into the mirror? how many different types of peaople are there in the world? what is the reason for you to dress like that? i'm not only a proud citizen of the country but also the continent. end sentence.)", default="what do you really see when you look into the mirror? how many different types of peaople are there in the world? what is the reason for you to dress like that? i'm not only a proud citizen of the country but also the continent. end sentence.")
+parser.add_option('--input', action="store", dest="input", help="Sentences to be checked by the model (default: what do you really see when you look into the mirror? how many different types of people are there in the world? what is the reason for you to dress like that? i'm not only a proud citizen of the country but also the continent. end sentence.)", default="what do you really see when you look into the mirror? how many different types of peaople are there in the world? what is the reason for you to dress like that? i'm not only a proud citizen of the country but also the continent. end sentence.")
 parser.add_option('--model_path', action="store", dest="model_path", help="The path to the model file (default: '')", default="")
 parser.add_option('--data_path', action="store", dest="data_path", help="The path to the dev or test data that should be tested on, including index_to_word and word_to_index (default: .)", default=".")
 
@@ -61,7 +61,7 @@ tokenized_input = nltk.sent_tokenize(input_data)
 print tokenized_input
 
 for element in tokenized_input:
-	final_input_data.append(["<START>"] + nltk.word_tokenize(element) + ["<END>"])
+	final_input_data.append(["<START>"] + nltk.word_tokenize(element.lower()) + ["<END>"])
 
 
 for index1, sentence in enumerate(final_input_data):

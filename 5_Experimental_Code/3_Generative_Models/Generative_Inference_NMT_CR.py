@@ -10,7 +10,7 @@ parser.add_option('--sentence_enc_path', action="store", dest="sentence_enc_path
 parser.add_option('--sentence_log', action="store", dest="sentence_log", help="The path to the sentence embeddings logfiles (default: .)", default=".")
 parser.add_option('--max_sentence_embeddings', action="store", dest="max_sentence_embeddings", help="The number of previous sentences that are taken into account to compute the next sentence (default: 5)", default="5")
 parser.add_option('--nr_sentences', action="store", dest="nr_sentences", help="The number of new sentence to create (default: 10)", default="10")
-parser.add_option('--save', action="store", dest="save", help="The file to save the result to (default: ./createdStory.txt)", default="./createdStory.txt")
+parser.add_option('--save', action="store", dest="save", help="The file to save the result to (default: ./createdStoryNMT.txt)", default="./createdStoryNMT.txt")
 
 options, args = parser.parse_args()
 model_path = options.network_path
@@ -125,11 +125,12 @@ for _ in range (0, number_sentences):
 				sentence_output += [index_to_word[str(word)]]
 
 	#save in file
+	string_sentence = ""
 	with open(save, "a") as f:
-		string_sentence = "HAHAHAHAHAHAHHAHHAAHHHAHA"
 		for element in sentence_output[:-1]:
 			string_sentence += " " + element	
 		f.write(string_sentence)
+		print string_sentence
 
 	graph = tf.Graph()
 	session = tf.Session(config=session_config, graph=graph)

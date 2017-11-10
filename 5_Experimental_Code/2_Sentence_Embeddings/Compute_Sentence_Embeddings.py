@@ -12,6 +12,7 @@ sentence_model = options.sentence_model
 sentence_vocab = options.sentence_vocab
 sentence_log = options.sentence_log
 save_path = options.save_path
+training_data = "./../tedData/sets/training/original_training_texts.txt"
 ##############################################
 
 # Imports
@@ -55,16 +56,29 @@ with open(sentence_vocab + "/index_to_word.json") as f:
 m = load_model(sentence_model)
 model = Sequential()
 model.add(Embedding(input_dim=len(word_to_index), output_dim=embedding_size, mask_zero=True, weights=m.layers[0].get_weights()))
+for layerNumber in range(0, nb_hidden_layers):
+    print "add LSTM layer...."
+    model.add(LSTM(units=hidden_dimensions, return_sequences=True, weights=m.layers[layerNumber+1].get_weights()))
 model.compile(loss='sparse_categorical_crossentropy', optimizer="adam")
 
+
+
+# Open the training dataset
+print "Reading training data..."
+path  = open(training_data, "r")
+train = path.read().decode('utf8')
+
 output = []
-for key, value in index_to_word.iteritems():
-	i = np.zeros((1, 1), dtype=np.int16)
-	i[0, 0] = key
-	output.append([key, value, model.predict(i, verbose=0)[0][-1].tolist()])
+for idx, sentence in enumerate(nltk.sent_tokenize(train)): 
+	word_list = nltk.word_tokenize(sentence.lower())
+	trainInput = np.zeros((1, len(word_list)), dtype=np.int16)
+	for index, idx in enumerate(word_list):
+			index_idx = word_to_index[idx] if idx in word_to_index else word_to_index[unknown_token]
+			trainInput[0, index] = index_idx
+	output.append([sentence, model.predict(trainInput, verbose=0)[0][-1].tolist()])
 
 print output
-with open(save_path+"/embeddings.txt",'w') as f:
+with open(save_path+"/SentenceEmbeddings.txt",'w') as f:
 	json.dump(output, f)
 
 

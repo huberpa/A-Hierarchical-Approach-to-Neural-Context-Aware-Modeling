@@ -27,6 +27,7 @@ model_name = options.name
 # Imports
 ##############################################
 import tensorflow as tf 
+from random import shuffle 
 import numpy as np
 import json
 import os
@@ -166,7 +167,7 @@ with tf.Session(config=session_config) as session:
 	session.run(tf.global_variables_initializer())
 	saver = tf.train.Saver(max_to_keep=None)
 	writer = tf.summary.FileWriter(".", graph=tf.get_default_graph())
-	'''
+	
 	# Training
 	print "Start training..."
 
@@ -180,10 +181,15 @@ with tf.Session(config=session_config) as session:
 		f.write("{}\n".format(""))
 		f.write("{}\n".format("Training started with: " + str(options)))
 
+	# Put all inputs in one datastructure to be able to shuffle
+	data = zip(encoder_input_data_batch, encoder_input_length_batch, decoder_input_data_batch, decoder_input_length_batch, decoder_output_data_batch, decoder_mask_batch)
+
 	for epoch in range(epochs):
 		print "epoch " + str(epoch+1) + " / " + str(epochs)
 		with open(data_path+'/models/'+model_name+"/log.txt",'a') as f:
 			f.write("{}\n".format("epoch " + str(epoch+1) + " / " + str(epochs) + " " + str(datetime.datetime.now())))
+
+		shuffle(data)
 
 		for batch_index,_ in enumerate(encoder_input_data_batch):
 
@@ -192,16 +198,12 @@ with tf.Session(config=session_config) as session:
 				f.write("{}\n".format("batch " + str(batch_index+1) + " / " + str(len(encoder_input_data_batch)) + " " + str(datetime.datetime.now())))
 
 			feed = {}
-			feed["encoder_inputs"] = encoder_input_data_batch[batch_index]
-			feed["encoder_length"] = encoder_input_length_batch[batch_index]
-			feed["decoder_inputs"] = decoder_input_data_batch[batch_index]
-			feed["decoder_length"] = decoder_input_length_batch[batch_index]
-			feed["decoder_outputs"] = decoder_output_data_batch[batch_index]
-			feed["mask"] = decoder_mask_batch[batch_index]
-
-			#print np.asarray(feed["encoder_inputs"]).shape
-			#print np.asarray(feed["decoder_inputs"]).shape
-			#print np.asarray(feed["decoder_outputs"]).shape
+			feed["encoder_inputs"] = data[batch_index][0]
+			feed["encoder_length"] = data[batch_index][1]
+			feed["decoder_inputs"] = data[batch_index][2]
+			feed["decoder_length"] = data[batch_index][3]
+			feed["decoder_outputs"] = data[batch_index][4]
+			feed["mask"] = data[batch_index][5]
 
 			if len(np.asarray(feed["decoder_inputs"]).shape) < 2:
 				for p in feed["decoder_inputs"]:
@@ -210,7 +212,6 @@ with tf.Session(config=session_config) as session:
 
 			print ('*'*50)
 
-
 			training_output = session.run([updates, loss], feed_dict={enc_in:feed["encoder_inputs"], dec_in:feed["decoder_inputs"], dec_out: feed["decoder_outputs"], mask: feed["mask"], enc_len: feed["encoder_length"], dec_len: feed["decoder_length"]})
 
 		print "Saving epoch..."
@@ -218,5 +219,5 @@ with tf.Session(config=session_config) as session:
 
 print "Training finished..."
 ##############################################
-'''
+
 # END
