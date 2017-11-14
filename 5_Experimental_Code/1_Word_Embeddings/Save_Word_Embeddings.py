@@ -14,6 +14,7 @@ data_path = options.data_path
 with open (data_path, 'r') as f:
     matrix = json.load(f)
 
+matrix = matrix[:2]
 rows = [word[1] for word in matrix[:4]]
 target_matrix = [word[2] for word in matrix[:4]]
 

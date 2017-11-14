@@ -18,15 +18,15 @@ x_data = []
 y_data = []
 #data = OfficialImageClassification(x_dtype="float32")
 for point in data:
-	x_data.append(point[2])
-	y_data.append(point[1])
+	x_data.append(point[1])
+	y_data.append(point[0])
 
 # convert image data to float64 matrix. float64 is need for bh_sne
 x_data = np.asarray(x_data).astype('float64')
 x_data = x_data.reshape((x_data.shape[0], -1))
 
 # For speed of computation, only run on a subset
-n = 2000
+n = 200
 x_data = x_data[:n]
 
 # perform t-SNE embedding

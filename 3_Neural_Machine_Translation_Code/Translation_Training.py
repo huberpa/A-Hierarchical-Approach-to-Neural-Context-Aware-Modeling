@@ -67,14 +67,14 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 	if hidden_layers > 1:
 		stacked_rnn = []
 		for layer in range(hidden_layers):
-			stacked_rnn.append(tf.contrib.rnn.LSTMCell(hidden_units))
+			stacked_rnn.append(tf.nn.rnn_cell.DropoutWrapper(tf.contrib.rnn.LSTMCell(hidden_units), output_keep_prob=0.8))
 		encoder_cell = tf.contrib.rnn.MultiRNNCell(cells=stacked_rnn)
 
 	decoder_cell = single_cell_dec = tf.contrib.rnn.LSTMCell(hidden_units)
 	if hidden_layers > 1:
 		stacked_rnn = []
 		for layer in range(hidden_layers):
-			stacked_rnn.append(tf.contrib.rnn.LSTMCell(hidden_units))
+			stacked_rnn.append(tf.nn.rnn_cell.DropoutWrapper(tf.contrib.rnn.LSTMCell(hidden_units), output_keep_prob=0.8))
 		decoder_cell = tf.contrib.rnn.MultiRNNCell(cells=stacked_rnn)
 
 	# Seq2Seq		
@@ -84,8 +84,6 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 		encoder_inputs_embedded = tf.nn.embedding_lookup(embeddings_enc, encoder_inputs)
 
 	_, initial_state = tf.nn.dynamic_rnn(encoder_cell, encoder_inputs_embedded, sequence_length=encoder_lengths, dtype=tf.float32, scope = "RNN_encoder")
-#	_, initial_state = tf.nn.bidirectional_dynamic_rnn(cell_fw =encoder_cell, cell_bw =encoder_cell, inputs=encoder_inputs_embedded, sequence_length=encoder_lengths, dtype=tf.float32, scope = "RNN_encoder")
-
 
 	# Decoder
 	with variable_scope.variable_scope("Decoder_embedding_layer"):
@@ -98,7 +96,6 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 		decoder = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper, initial_state, output_layer=final_layer)
 		outputs, _, _ = tf.contrib.seq2seq.dynamic_decode(decoder, maximum_iterations=dec_timesteps_max)
 		training_output = outputs.rnn_output
-		#training_output = tf.nn.dropout(training_output, 0.8)
 
 		helper_infer = tf.contrib.seq2seq.GreedyEmbeddingHelper(embeddings_dec, start_token_infer, end_of_sequence_id)
 		decoder_infer = tf.contrib.seq2seq.BasicDecoder(decoder_cell, helper_infer, initial_state, output_layer=final_layer)
@@ -122,13 +119,13 @@ def seq2seq(enc_input_dimension,enc_timesteps_max,dec_input_dimension, dec_times
 	tf.add_to_collection('variables_to_store', decoder_lengths)
 	tf.add_to_collection('variables_to_store', infer_output)
 	tf.add_to_collection('variables_to_store', start_token_infer)
-	#if len(initial_state < 2):
-	tf.add_to_collection('variables_to_store', initial_state.c)
-	tf.add_to_collection('variables_to_store', initial_state.h)
-	#else:
-	#	for element in initial_state:
-	#		tf.add_to_collection('variables_to_store', element.c)
-	#		tf.add_to_collection('variables_to_store', element.h)
+	if hidden_units < 2:
+		tf.add_to_collection('variables_to_store', initial_state.c)
+		tf.add_to_collection('variables_to_store', initial_state.h)
+	else:
+		for element in initial_state:
+			tf.add_to_collection('variables_to_store', element.c)
+			tf.add_to_collection('variables_to_store', element.h)
 
 	return (training_output, updates, loss, encoder_inputs, decoder_inputs, decoder_outputs, masking, encoder_lengths, decoder_lengths, infer_output, start_token_infer)
 
