@@ -6,10 +6,10 @@ parser = optparse.OptionParser()
 parser.add_option('--dataset', action="store", dest="dataset", help="Choose the dataset to train on [PRD,DEV,SMALL] (default: PRD)", default="PRD")
 parser.add_option('--vocabulary_size', action="store", dest="vocabulary_size", help="Size of the vocabulary (default: 30000)", default=30000)
 parser.add_option('--save_path', action="store", dest="save_path", help="The path to save the folders (logging, models etc.)  (default: .)", default=".")
-parser.add_option('--max_context_sentences', action="store", dest="max_context_sentences", help="The number of context sentences to take into account (default: 10)", default=10)
+parser.add_option('--max_context_sentences', action="store", dest="max_context_sentences", help="The number of context sentences to take into account (default: 10)", default=9)
 parser.add_option('--max_encoder_words', action="store", dest="max_encoder_words", help="The number of words in an encoder sentence (default: 50)", default=50)
 parser.add_option('--max_decoder_words', action="store", dest="max_decoder_words", help="The number of words in an decoder sentence (default: 50)", default=50)
-parser.add_option('--embedding_size', action="store", dest="embedding_size", help="The number of hidden layers in the model (default: 256)", default=256)
+parser.add_option('--embedding_size', action="store", dest="embedding_size", help="The number of hidden layers in the model (default: 256)", default=128)
 parser.add_option('--max_sentence', action="store", dest="max_sentence", help="The maximal sentence length (default: 50)", default=50)
 parser.add_option('--layer_number', action="store", dest="layer_number", help="The number of hidden layers in the model (default: 1)", default=1)
 parser.add_option('--layer_dimension', action="store", dest="layer_dimension", help="The number of neurons in the hidden layer(s)  (default: 512)", default=512)
@@ -69,18 +69,23 @@ from tensorflow.python.ops import variable_scope
 def seq2seq(enc_sentence_max,enc_words_max,dec_words_max,hidden_units,hidden_layers,input_embedding_size,vocab_size):
 
 	# Inputs / Outputs / Cells
-	encoder_inputs = tf.placeholder(dtypes.int64, shape=[None, enc_sentence_max, enc_words_max], name="encoder_inputs")
-	encoder_word_lengths = tf.placeholder(dtypes.int32, shape=[None, enc_sentence_max], name="encoder_word_lengths")
-	encoder_sentence_lengths = tf.placeholder(dtypes.int32, shape=[None], name="encoder_sentence_lengths")
-	decoder_inputs = tf.placeholder(dtypes.int64, shape=[None, dec_words_max], name="decoder_inputs")
-	decoder_lengths = tf.placeholder(dtypes.int32, shape=[None], name="decoder_lengths")
-	decoder_outputs = tf.placeholder(dtypes.int64, shape=[None, dec_words_max], name="decoder_outputs")
-	masking = tf.placeholder(dtypes.float32, shape=[None, dec_words_max], name="loss_masking")
+	encoder_inputs = tf.placeholder(dtypes.int64, shape=[3, enc_sentence_max, enc_words_max], name="encoder_inputs")
+	encoder_word_lengths = tf.placeholder(dtypes.int32, shape=[3, enc_sentence_max], name="encoder_word_lengths")
+	encoder_sentence_lengths = tf.placeholder(dtypes.int32, shape=[3], name="encoder_sentence_lengths")
+	decoder_inputs = tf.placeholder(dtypes.int64, shape=[3, dec_words_max], name="decoder_inputs")
+	decoder_lengths = tf.placeholder(dtypes.int32, shape=[3], name="decoder_lengths")
+	decoder_outputs = tf.placeholder(dtypes.int64, shape=[3, dec_words_max], name="decoder_outputs")
+	masking = tf.placeholder(dtypes.float32, shape=[3, dec_words_max], name="loss_masking")
 
 	# Cells
-	encoder_cell = tf.contrib.rnn.LSTMCell(hidden_units, reuse=tf.get_variable_scope().reuse)
+	encoder_cell = tf.contrib.rnn.LSTMCell(hidden_units)
 	if hidden_layers > 1:
 		encoder_cell = tf.contrib.rnn.MultiRNNCell([tf.contrib.rnn.LSTMCell(hidden_units) for _ in range(hidden_layers)])
+
+	sentence_cell = tf.contrib.rnn.LSTMCell(hidden_units)
+	if hidden_layers > 1:
+		sentence_cell = tf.contrib.rnn.MultiRNNCell([tf.contrib.rnn.LSTMCell(hidden_units) for _ in range(hidden_layers)])
+
 	decoder_cell = tf.contrib.rnn.LSTMCell(hidden_units)
 	if hidden_layers > 1:
 		decoder_cell = tf.contrib.rnn.MultiRNNCell([tf.contrib.rnn.LSTMCell(hidden_units) for _ in range(hidden_layers)])
@@ -92,29 +97,32 @@ def seq2seq(enc_sentence_max,enc_words_max,dec_words_max,hidden_units,hidden_lay
 	
 	sentence_states = []
 	transp = tf.transpose(encoder_inputs, [1, 0, 2])
+	encoder_word_lengths = tf.transpose(encoder_word_lengths, [1, 0])
 	input_sentences = tf.unstack(transp)
-	for index, sentence in enumerate(input_sentences):
-		encoder_inputs_embedded = tf.nn.embedding_lookup(embeddings, sentence)
-	#	if index == 0:
-		_, final_sentence_state = tf.nn.dynamic_rnn(encoder_cell, encoder_inputs_embedded, sequence_length=encoder_word_lengths[index], dtype=tf.float32)
-		#if index > 0:
-		#	_, final_sentence_state = tf.nn.dynamic_rnn(encoder_cell, encoder_inputs_embedded, sequence_length=encoder_word_lengths[index], dtype=tf.float32)
-		
-		sentence_states.append(final_sentence_state.c)
 
+	with variable_scope.variable_scope("Sentence_RNN_Encoder"):
+		for idx, sentence in enumerate(input_sentences):
+			encoder_inputs_embedded = tf.nn.embedding_lookup(embeddings, sentence)
+			_, final_sentence_state = tf.nn.dynamic_rnn(encoder_cell, encoder_inputs_embedded, sequence_length=encoder_word_lengths[idx], dtype=tf.float32)
+			sentence_states.append(final_sentence_state.c)
 		sentence_output = tf.stack(values=sentence_states)
 		sentence_output = tf.transpose(sentence_output, [1, 0, 2])
 
-		_, final_context_state = tf.nn.dynamic_rnn(encoder_cell2, sentence_output, sequence_length=encoder_sentence_lengths, dtype=tf.float32)
+	with variable_scope.variable_scope("Context_RNN_Encoder"):
+		_, final_context_state = tf.nn.dynamic_rnn(sentence_cell, sentence_output, sequence_length=encoder_sentence_lengths, dtype=tf.float32)
 
 	# Decoder
-	decoder_inputs_embedded = tf.nn.embedding_lookup(embeddings, decoder_inputs)
-	
-	lstm_output,state = tf.nn.dynamic_rnn(decoder_cell, decoder_inputs_embedded, sequence_length=decoder_lengths, initial_state=final_context_state, scope = "RNN_decoder")
+	with variable_scope.variable_scope("RNN_decoder"):
+		decoder_inputs_embedded = tf.nn.embedding_lookup(embeddings, decoder_inputs)
+		print decoder_inputs_embedded
+		print decoder_lengths
+		print final_context_state
+		lstm_output,state = tf.nn.dynamic_rnn(decoder_cell, decoder_inputs_embedded, sequence_length=decoder_lengths, initial_state=final_context_state)
 	
 	with variable_scope.variable_scope("Output_layer"):
 		transp = tf.transpose(lstm_output, [1, 0, 2])
 		lstm_output_unpacked = tf.unstack(transp)
+		outputs = []
 		for index, item in enumerate(lstm_output_unpacked):
 			if index == 0:
 				logits = tf.layers.dense(inputs=item, units=vocab_size, name="output_dense")
@@ -151,7 +159,6 @@ def createBatch(listing, batchSize):
 			batchList.append(listing[index:(index + batchSize)])
 	return batchList
 ##############################################
-
 
 
 # Main
@@ -235,7 +242,7 @@ decoder_mask_batch = createBatch(decoder_mask, batch_size)
 print "Create computational graph..."
 network, updates, loss, enc_in, dec_in, dec_out, mask, enc_word_len, enc_sent_len, dec_len = seq2seq(enc_sentence_max=max_context_sentences, enc_words_max=max_encoder_words, dec_words_max=max_decoder_words, hidden_units=hidden_dimensions, hidden_layers=nb_hidden_layers, input_embedding_size=embedding_size, vocab_size=vocabulary_size)
 
-'''
+
 # Launch the graph
 print "Launch the graph..."
 session_config = tf.ConfigProto(allow_soft_placement=True)    
@@ -245,7 +252,7 @@ with tf.Session(config=session_config) as session:
 	session.run(tf.global_variables_initializer())
 	saver = tf.train.Saver(max_to_keep=None)
 	writer = tf.summary.FileWriter(".", graph=tf.get_default_graph())
-	
+	'''
 	# Training
 	print "Start training..."
 
